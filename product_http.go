@@ -53,8 +53,12 @@ func productListHandler(db database) http.HandlerFunc {
 			return
 		}
 		result := paginated(entries, filter)
-		if err := loadProductRelations(ctx, db, result.Data, false); err != nil {
+		if err := loadProductRelations(ctx, db, result.Data); err != nil {
 			databaseFailure(w, "load product list relations", err)
+			return
+		}
+		if err := loadListPromotions(ctx, db, result.Data); err != nil {
+			databaseFailure(w, "load product list promotions", err)
 			return
 		}
 		writeJSON(w, result)
@@ -192,8 +196,13 @@ func productDetailHandler(db database) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if err := loadProductRelations(ctx, db, entries, true); err != nil {
+		if err := loadProductRelations(ctx, db, entries); err != nil {
 			databaseFailure(w, "load product details", err)
+			return
+		}
+		entries[0].Promotions, err = productPromotions(ctx, db, id)
+		if err != nil {
+			databaseFailure(w, "load product promotions", err)
 			return
 		}
 		writeJSON(w, singleResponse{Status: "success", Data: entries[0]})

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -27,7 +28,7 @@ type singleResponse struct {
 	Data   any    `json:"data"`
 }
 
-func newHandler(db database, images *imageStore, accounts *accountAuth) http.Handler {
+func newHandler(db database, images *imageStore, accounts *accountAuth, checkoutEnabled bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
 		entries, err := listBanners(r.Context(), db)
@@ -44,6 +45,7 @@ func newHandler(db database, images *imageStore, accounts *accountAuth) http.Han
 	registerCatalog(mux, db, "/api/product_scope", productScopes)
 	registerCatalog(mux, db, "/api/product_type", productTypes)
 	registerProductRoutes(mux, db)
+	mux.HandleFunc("POST /api/checkout/cart/quote", cartQuoteHandler(db, checkoutEnabled))
 	if accounts != nil {
 		mux.HandleFunc("POST /api/login", accounts.login)
 		mux.HandleFunc("GET /api/check_auth", accounts.check)
@@ -216,6 +218,13 @@ func parseID(value string) (pgtype.UUID, error) {
 		return id, errors.New("invalid length")
 	}
 	return id, nil
+}
+
+const maxJSONBodySize = 2 * 1024 * 1024
+
+func isJSONRequest(r *http.Request) bool {
+	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && (contentType == "application/json" || strings.HasSuffix(contentType, "+json"))
 }
 
 func writeJSON(w http.ResponseWriter, data any) {

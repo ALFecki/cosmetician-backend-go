@@ -23,6 +23,11 @@ protected GET /api/person and GET /api/person/{id} routes. For compatible
 sessions between Rust and Go, configure the same signing secret on both
 services. Cookies are secure by default. Set SECURE_MODE=false for local
 HTTP.
+
+Set PHONE_CHECKOUT_ENABLED=true to enable POST /api/checkout/cart/quote.
+The route recalculates prices and availability from the catalog and does
+not create a cart or consume a promo code.
+
 To build the Linux production architecture on another machine:
 
     docker build --platform linux/amd64 -t cosmetician-backend-go .

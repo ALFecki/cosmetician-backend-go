@@ -23,7 +23,7 @@ const (
 
 func TestProfileAuthorization(t *testing.T) {
 	key := []byte("fixture-secret-no-production")
-	handler := newHandler(nil, nil, &accountAuth{key: key})
+	handler := newHandler(nil, nil, &accountAuth{key: key}, false)
 	customer := profileCookie(t, key, testAccountID, false, false, false)
 	moderator := profileCookie(t, key, testModeratorID, false, true, false)
 	admin := profileCookie(t, key, testAdminID, true, true, false)
@@ -56,7 +56,7 @@ func TestProfileAuthorization(t *testing.T) {
 func TestProfileContract(t *testing.T) {
 	tx := accountFixture(t)
 	key := []byte("fixture-secret-no-production")
-	handler := newHandler(tx, nil, &accountAuth{db: tx, key: key})
+	handler := newHandler(tx, nil, &accountAuth{db: tx, key: key}, false)
 	customer := profileCookie(t, key, testAccountID, false, false, false)
 	phone := profileCookie(t, key, testPhoneID, false, false, true)
 	admin := profileCookie(t, key, testAdminID, true, true, false)

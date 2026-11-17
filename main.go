@@ -69,8 +69,16 @@ func run() error {
 		accounts = &accountAuth{db: pool, key: []byte(key), secureCookies: secureCookies}
 	}
 
+	checkoutEnabled := false
+	if raw := os.Getenv("PHONE_CHECKOUT_ENABLED"); raw != "" {
+		checkoutEnabled, err = strconv.ParseBool(raw)
+		if err != nil {
+			return errors.New("PHONE_CHECKOUT_ENABLED must be a boolean")
+		}
+	}
+
 	server := &http.Server{
-		Addr: address, Handler: newHandler(pool, images, accounts),
+		Addr: address, Handler: newHandler(pool, images, accounts, checkoutEnabled),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
 		WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second,
 	}

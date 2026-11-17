@@ -30,32 +30,7 @@ func TestDictionaryContract(t *testing.T) {
 
 func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
 	t.Helper()
-	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
-	if dsn == "" {
-		t.Skip("set SKVIDERM_TEST_DATABASE_URL to run the PostgreSQL contract tests")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	conn, err := pgx.Connect(ctx, dsn)
-	if err != nil {
-		t.Fatal("connect to test PostgreSQL:", err)
-	}
-	defer conn.Close(context.Background())
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Rollback(context.Background())
-	for _, file := range schemaAndRows {
-		sql, err := os.ReadFile("testdata/" + file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := tx.Exec(ctx, string(sql)); err != nil {
-			t.Fatalf("apply %s: %v", file, err)
-		}
-	}
+	ctx, tx := catalogFixture(t, schemaAndRows...)
 
 	fixture, err := os.ReadFile("testdata/" + name + "_contract.json")
 	if err != nil {
@@ -78,7 +53,7 @@ func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
 	if contract.RustCommit == "" || len(contract.Cases) == 0 {
 		t.Fatal("missing Rust reference revision or scenarios")
 	}
-	handler := newHandler(tx, nil, nil)
+	handler := newHandler(tx, nil, nil, false)
 	for _, tc := range contract.Cases {
 		t.Run(tc.Path+" "+tc.Name, func(t *testing.T) {
 			if tc.HideBanners {
@@ -132,6 +107,37 @@ func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
 			}
 		})
 	}
+}
+
+func catalogFixture(t *testing.T, schemaAndRows ...string) (context.Context, pgx.Tx) {
+	t.Helper()
+	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("set SKVIDERM_TEST_DATABASE_URL to run the PostgreSQL contract tests")
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	conn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		t.Fatal("connect to test PostgreSQL:", err)
+	}
+	t.Cleanup(func() { _ = conn.Close(context.Background()) })
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+	for _, file := range schemaAndRows {
+		sql, err := os.ReadFile("testdata/" + file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(ctx, string(sql)); err != nil {
+			t.Fatalf("apply %s: %v", file, err)
+		}
+	}
+	return ctx, tx
 }
 
 func decodeContract(t *testing.T, data []byte, unordered, idsOnly bool) map[string]any {

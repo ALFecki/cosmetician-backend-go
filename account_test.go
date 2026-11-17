@@ -20,7 +20,7 @@ const testAccountID = "00000000-0000-4000-8000-000000000601"
 
 func TestAccountSessionRejections(t *testing.T) {
 	key := []byte("fixture-secret-no-production")
-	handler := newHandler(nil, nil, &accountAuth{key: key})
+	handler := newHandler(nil, nil, &accountAuth{key: key}, false)
 	for _, tc := range []struct {
 		name, message string
 		cookie        *http.Cookie
@@ -43,7 +43,7 @@ func TestAccountSessionRejections(t *testing.T) {
 
 func TestAccountSessionRequiresAccountClaims(t *testing.T) {
 	key := []byte("fixture-secret-no-production")
-	handler := newHandler(nil, nil, &accountAuth{key: key})
+	handler := newHandler(nil, nil, &accountAuth{key: key}, false)
 	for _, tc := range []struct {
 		name, message string
 		claims        jwt.MapClaims
@@ -68,7 +68,7 @@ func TestAccountSessionRequiresAccountClaims(t *testing.T) {
 }
 
 func TestLoginRequestValidation(t *testing.T) {
-	handler := newHandler(nil, nil, &accountAuth{key: []byte("test-only")})
+	handler := newHandler(nil, nil, &accountAuth{key: []byte("test-only")}, false)
 	for _, body := range []string{
 		`{"email":"test@example.invalid"}`,
 		`{"Email":"test@example.invalid","password":"test-password"}`,
@@ -102,7 +102,7 @@ func TestAccountContract(t *testing.T) {
 		{"phone account", "phone@example.invalid", "test-password", false, true, 401},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			handler := newHandler(tx, nil, &accountAuth{db: tx, key: key, secureCookies: tc.secure})
+			handler := newHandler(tx, nil, &accountAuth{db: tx, key: key, secureCookies: tc.secure}, false)
 			body, err := json.Marshal(map[string]any{"email": tc.email, "password": tc.password, "ignored": true})
 			if err != nil {
 				t.Fatal(err)
@@ -144,7 +144,7 @@ func TestAccountContract(t *testing.T) {
 		})
 	}
 	t.Run("session predating phone checkout", func(t *testing.T) {
-		handler := newHandler(tx, nil, &accountAuth{db: tx, key: key})
+		handler := newHandler(tx, nil, &accountAuth{db: tx, key: key}, false)
 		cookie := legacyAccountCookie(t, jwt.SigningMethodHS256, key, time.Now().Add(-20*time.Second))
 		profile := accountPayload(t, accountRequest(handler, http.MethodGet, "/api/check_auth", "", cookie))
 		claims := profile["claims"].(map[string]any)
