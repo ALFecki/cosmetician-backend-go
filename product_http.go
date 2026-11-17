@@ -24,7 +24,7 @@ func registerProductRoutes(mux *http.ServeMux, db database) {
 
 func productListHandler(db database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		values, err := parseListQuery(r.URL.RawQuery,
+		values, err := parseListQuery(r.URL.RawQuery, true,
 			"title", "fullTitle", "description", "composition", "brandId", "categoryId", "countryId",
 			"productScopeId", "productScope", "productType", "minPrice", "maxPrice", "minVolume", "maxVolume", "hasPromotion", "sort")
 		if err != nil {
@@ -202,7 +202,7 @@ func productDetailHandler(db database) http.HandlerFunc {
 
 func variantListHandler(db database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		values, err := parseListQuery(r.URL.RawQuery, "productId", "volume", "price")
+		values, err := parseListQuery(r.URL.RawQuery, true, "productId", "volume", "price")
 		if err != nil {
 			writeQueryError(w, err)
 			return

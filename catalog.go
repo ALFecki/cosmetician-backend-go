@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -64,18 +67,48 @@ type banner struct {
 }
 
 type catalogResource struct {
-	fromSQL string
-	scan    func(pgx.Row) (any, error)
+	fromSQL  string
+	scan     func(pgx.Row) (any, error)
+	filters  []string
+	paginate bool
 }
 
+var titleFilters = []string{"title", "description"}
+var taxonFilters = []string{"title", "description", "createdAt", "updatedAt"}
+
 var brands = catalogResource{
-	fromSQL: "SELECT id, title, description, is_deleted, created_at, updated_at, image, manufacturer, importer FROM brand",
-	scan:    scanBrand,
+	fromSQL:  "SELECT id, title, description, is_deleted, created_at, updated_at, image, manufacturer, importer FROM brand",
+	scan:     scanBrand,
+	filters:  titleFilters,
+	paginate: true,
 }
 
 var categories = catalogResource{
-	fromSQL: "SELECT id, title, description, is_deleted, created_at, updated_at FROM category",
-	scan:    scanCategory,
+	fromSQL:  "SELECT id, title, description, is_deleted, created_at, updated_at FROM category",
+	scan:     scanCategory,
+	filters:  titleFilters,
+	paginate: true,
+}
+
+var countries = catalogResource{
+	fromSQL:  "SELECT id, name, code, is_deleted, created_at, updated_at FROM country",
+	scan:     scanCountry,
+	filters:  []string{"name", "code"},
+	paginate: true,
+}
+
+const taxonSelect = "SELECT id, title, description, created_at, updated_at FROM "
+
+var productScopes = catalogResource{
+	fromSQL: taxonSelect + "product_scope",
+	scan:    scanProductTaxon,
+	filters: taxonFilters,
+}
+
+var productTypes = catalogResource{
+	fromSQL: taxonSelect + "product_type",
+	scan:    scanProductTaxon,
+	filters: taxonFilters,
 }
 
 func scanBrand(row pgx.Row) (any, error) {
@@ -91,20 +124,92 @@ func scanCategory(row pgx.Row) (any, error) {
 	return value, err
 }
 
-func listCatalog(ctx context.Context, db database, resource catalogResource, filter listFilter) ([]any, error) {
+func scanCountry(row pgx.Row) (any, error) {
+	var value country
+	err := row.Scan(&value.ID, &value.Name, &value.Code, &value.IsDeleted, &value.CreatedAt, &value.UpdatedAt)
+	return value, err
+}
+
+func scanProductTaxon(row pgx.Row) (any, error) {
+	var value productTaxon
+	err := row.Scan(&value.ID, &value.Title, &value.Description, &value.CreatedAt, &value.UpdatedAt)
+	return value, err
+}
+
+func catalogListSQL(resource catalogResource, values url.Values, includeDeleted bool) (string, []any, error) {
 	query := resource.fromSQL + " WHERE TRUE"
-	if !filter.includeDeleted {
+	if !includeDeleted {
 		query += " AND (is_deleted IS NULL OR is_deleted = false)"
 	}
 	var args []any
-	if filter.title != nil {
-		args = append(args, "%"+*filter.title+"%")
-		query += fmt.Sprintf(" AND title ILIKE $%d", len(args))
+	for _, key := range resource.filters {
+		if !values.Has(key) {
+			continue
+		}
+		column, value := key, values.Get(key)
+		switch key {
+		case "createdAt", "updatedAt":
+			stamp, err := normalizeCatalogDate(value)
+			if err != nil {
+				return "", nil, err
+			}
+			value = stamp
+			// Rust matches the serialized timestamp against PostgreSQL's text representation.
+			column = "CAST(created_at AS TEXT)"
+			if key == "updatedAt" {
+				column = "CAST(updated_at AS TEXT)"
+			}
+		}
+		args = append(args, "%"+strings.ToLower(value)+"%")
+		query += fmt.Sprintf(" AND %s ILIKE $%d", column, len(args))
 	}
-	if filter.description != nil {
-		args = append(args, "%"+*filter.description+"%")
-		query += fmt.Sprintf(" AND description ILIKE $%d", len(args))
+	return query, args, nil
+}
+
+func normalizeCatalogDate(value string) (string, error) {
+	value = strings.ToUpper(strings.TrimSpace(value))
+	if len(value) > 10 && value[10] == ' ' {
+		value = value[:10] + "T" + value[11:]
 	}
+	if zone, found := strings.CutSuffix(value, "UTC"); found {
+		value = strings.TrimSpace(zone) + "Z"
+	}
+	if strings.Contains(value, ",") {
+		return "", errors.New("input contains invalid characters")
+	}
+	offset := strings.LastIndexAny(value, "+-")
+	if offset > 10 && len(value)-offset == 5 {
+		value = value[:offset+3] + ":" + value[offset+3:]
+	}
+	leapSecond := len(value) >= 19 && value[17:19] == "60"
+	if leapSecond {
+		value = value[:17] + "59" + value[19:]
+	}
+	stamp, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		parseErr := err.(*time.ParseError)
+		switch {
+		case strings.Contains(parseErr.Message, "out of range"):
+			return "", errors.New("input is out of range")
+		case strings.HasPrefix(parseErr.Message, ": extra text:"):
+			return "", errors.New("trailing input")
+		case parseErr.ValueElem == "", strings.Trim(parseErr.ValueElem, "0123456789+-:") == "":
+			return "", errors.New("premature end of input")
+		default:
+			return "", errors.New("input contains invalid characters")
+		}
+	}
+	if offset > 10 && (value[offset+1:offset+3] > "23" || value[offset+4:] > "59") {
+		return "", errors.New("input is out of range")
+	}
+	stamp = stamp.UTC()
+	if leapSecond {
+		return stamp.Format("2006-01-02T15:04:") + "60" + stamp.Format(".999999999Z"), nil
+	}
+	return stamp.Format(time.RFC3339Nano), nil
+}
+
+func listCatalog(ctx context.Context, db database, resource catalogResource, query string, args []any) ([]any, error) {
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err

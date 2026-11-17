@@ -24,6 +24,10 @@ func TestProductContract(t *testing.T) {
 	runCatalogContract(t, "product", "catalog_schema.sql", "catalog_rows.sql", "product_schema.sql", "product_rows.sql")
 }
 
+func TestDictionaryContract(t *testing.T) {
+	runCatalogContract(t, "dictionary", "product_schema.sql", "dictionary_rows.sql")
+}
+
 func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
 	t.Helper()
 	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
