@@ -2,7 +2,7 @@ SkViDerm Go backend
 ==================
 
 The Go service implements public storefront reads for brands, categories,
-banners, products, variants, promotions and product promo codes. The
+banners, products, variants, promotions, product promo codes and images. The
 Rust backend is the behavioral reference. The Go service connects to the
 existing PostgreSQL schema in read-only mode. Rust owns the migrations.
 
@@ -13,8 +13,11 @@ database with the existing Rust migrations applied and run:
 
     go run .
 
-Set HTTP_ADDR to select a listen address (defaults to :8000). To build the
-Linux production architecture on another machine:
+Set HTTP_ADDR to select a listen address (defaults to :8000). The public
+/api/images/... route reads files from MinIO when MINIO_ENDPOINT,
+MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET are supplied. Provide
+an absolute HTTP(S) endpoint and credentials allowed to read the bucket.
+To build the Linux production architecture on another machine:
 
     docker build --platform linux/amd64 -t cosmetician-backend-go .
 

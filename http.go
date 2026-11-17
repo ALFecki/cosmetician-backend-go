@@ -27,7 +27,7 @@ type singleResponse struct {
 	Data   any    `json:"data"`
 }
 
-func newHandler(db database) http.Handler {
+func newHandler(db database, images *imageStore) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
 		entries, err := listBanners(r.Context(), db)
@@ -44,6 +44,9 @@ func newHandler(db database) http.Handler {
 	registerCatalog(mux, db, "/api/product_scope", productScopes)
 	registerCatalog(mux, db, "/api/product_type", productTypes)
 	registerProductRoutes(mux, db)
+	if images != nil {
+		return storefrontCORS(images.routes(mux))
+	}
 	return storefrontCORS(mux)
 }
 

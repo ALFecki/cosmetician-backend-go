@@ -50,8 +50,14 @@ func run() error {
 		return errors.New("cannot connect to PostgreSQL")
 	}
 
+	images, err := newImageStore(os.Getenv("MINIO_ENDPOINT"), os.Getenv("MINIO_ACCESS_KEY"),
+		os.Getenv("MINIO_SECRET_KEY"), os.Getenv("MINIO_BUCKET"))
+	if err != nil {
+		return err
+	}
+
 	server := &http.Server{
-		Addr: address, Handler: newHandler(pool),
+		Addr: address, Handler: newHandler(pool, images),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
 		WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second,
 	}
