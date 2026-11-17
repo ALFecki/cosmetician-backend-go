@@ -74,7 +74,7 @@ func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
 	if contract.RustCommit == "" || len(contract.Cases) == 0 {
 		t.Fatal("missing Rust reference revision or scenarios")
 	}
-	handler := newHandler(tx)
+	handler := newHandler(tx, nil)
 	for _, tc := range contract.Cases {
 		t.Run(tc.Path+" "+tc.Name, func(t *testing.T) {
 			if tc.HideBanners {
