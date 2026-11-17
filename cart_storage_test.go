@@ -222,7 +222,7 @@ func parseSavedQuote(t *testing.T, response *httptest.ResponseRecorder) cartQuot
 	return cartQuote{Order: result.Order, Items: result.Items}
 }
 
-func testCartDatabase(t *testing.T) *pgxpool.Pool {
+func testCartDatabase(t *testing.T, additionalFixtures ...string) *pgxpool.Pool {
 	t.Helper()
 	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -245,12 +245,13 @@ func testCartDatabase(t *testing.T) *pgxpool.Pool {
 	if _, err := admin.Exec(ctx, "CREATE SCHEMA "+schema+"; SET search_path TO "+schema); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{
+	fixtures := []string{
 		"testdata/account_schema.sql", "testdata/account_rows.sql",
 		"testdata/catalog_schema.sql", "testdata/catalog_rows.sql",
 		"testdata/product_schema.sql", "testdata/product_rows.sql",
 		"testdata/cart_storage_schema.sql", "migrations/0001_cart_add_operation.sql",
-	} {
+	}
+	for _, path := range append(fixtures, additionalFixtures...) {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

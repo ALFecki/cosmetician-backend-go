@@ -98,6 +98,37 @@ func run() error {
 		}
 	}
 
+	if raw := os.Getenv("ORDER_CONFIRMATION_ENABLED"); raw != "" {
+		enabled, err := strconv.ParseBool(raw)
+		if err != nil {
+			return errors.New("ORDER_CONFIRMATION_ENABLED must be a boolean")
+		}
+		if enabled {
+			if accounts == nil || accounts.cartDB == nil {
+				return errors.New("ORDER_CONFIRMATION_ENABLED requires CART_STORAGE_ENABLED")
+			}
+			settings := &checkoutConfirmation{}
+			if rawGuest := os.Getenv("GUEST_CHECKOUT_ENABLED"); rawGuest != "" {
+				settings.guestEnabled, err = strconv.ParseBool(rawGuest)
+				if err != nil {
+					return errors.New("GUEST_CHECKOUT_ENABLED must be a boolean")
+				}
+			}
+			if settings.guestEnabled {
+				if accounts.guestOrigin == "" {
+					return errors.New("GUEST_CHECKOUT_ENABLED requires CLIENT_URL")
+				}
+				limiter, err := newGuestOrderLimiter(os.Getenv("REDIS_URL"), os.Getenv("SMS_TRUSTED_PROXY_IP"))
+				if err != nil {
+					return err
+				}
+				defer limiter.Close()
+				settings.guestLimiter = limiter
+			}
+			accounts.confirmation = settings
+		}
+	}
+
 	server := &http.Server{
 		Addr: address, Handler: newHandler(pool, images, accounts, checkoutEnabled),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,

@@ -119,6 +119,9 @@ func writeCartError(w http.ResponseWriter, err error) {
 	case errors.As(err, &invalid):
 		writeCheckoutError(w, http.StatusBadRequest, invalid.Error())
 	case errors.As(err, &rejected):
+		if rejected.status == http.StatusTooManyRequests {
+			w.Header().Set("Retry-After", "60")
+		}
 		writeCheckoutError(w, rejected.status, rejected.message)
 	case errors.Is(err, context.DeadlineExceeded):
 		writeCheckoutError(w, http.StatusServiceUnavailable, "Корзина временно недоступна. Попробуйте ещё раз")
@@ -157,8 +160,7 @@ func changeCart(ctx context.Context, db cartDatabase, person uuid.UUID, action c
 	case replaceCart:
 		cart.PromoCode = request.PromoCode
 	default:
-		items, err := queryStructs[cartItem](ctx, tx,
-			"SELECT variant_id, quantity FROM order_product WHERE order_id = $1 ORDER BY variant_id", cart.ID)
+		items, err := savedCartItems(ctx, tx, cart.ID)
 		if err != nil {
 			return cartQuote{}, err
 		}
@@ -223,6 +225,15 @@ func lockCart(ctx context.Context, tx pgx.Tx, person uuid.UUID, create bool) (sa
 	if err != nil {
 		return savedCart{}, err
 	}
+	return lockDraftCart(ctx, tx, person, create)
+}
+
+func savedCartItems(ctx context.Context, tx pgx.Tx, id uuid.UUID) ([]cartItem, error) {
+	return queryStructs[cartItem](ctx, tx,
+		"SELECT variant_id, quantity FROM order_product WHERE order_id = $1 ORDER BY variant_id", id)
+}
+
+func lockDraftCart(ctx context.Context, tx pgx.Tx, person uuid.UUID, create bool) (savedCart, error) {
 	carts, err := queryStructs[savedCart](ctx, tx, `
 		SELECT o.id, o.cart_revision, p.code FROM "order" o
 		LEFT JOIN promo_code p ON p.id = o.promo_code_id
