@@ -17,6 +17,11 @@ Set HTTP_ADDR to select a listen address (defaults to :8000). The public
 /api/images/... route reads files from MinIO when MINIO_ENDPOINT,
 MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET are supplied. Provide
 an absolute HTTP(S) endpoint and credentials allowed to read the bucket.
+
+Set JWT_SECRET to enable POST /api/login and GET /api/check_auth. For
+compatible sessions between Rust and Go, configure the same signing
+secret on both services. Cookies are secure by default. Set
+SECURE_MODE=false for local HTTP.
 To build the Linux production architecture on another machine:
 
     docker build --platform linux/amd64 -t cosmetician-backend-go .

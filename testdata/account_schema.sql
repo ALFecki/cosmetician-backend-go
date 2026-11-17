@@ -1,0 +1,20 @@
+CREATE TEMP TABLE person (
+    id uuid PRIMARY KEY,
+    first_name text NOT NULL,
+    second_name text NOT NULL,
+    surname text,
+    email text UNIQUE,
+    is_email_verified boolean,
+    phone text NOT NULL,
+    verified_phone text,
+    phone_verified_at timestamptz,
+    contact_email text,
+    checkout_details jsonb,
+    password text,
+    image text,
+    is_moderator boolean NOT NULL,
+    is_admin boolean NOT NULL,
+    is_deleted boolean,
+    created_at timestamptz,
+    updated_at timestamptz
+);
