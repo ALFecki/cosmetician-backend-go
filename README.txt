@@ -24,7 +24,13 @@ protected GET /api/person and GET /api/person/{id} routes. For compatible
 sessions between Rust and Go, configure the same signing secret on both
 services. Cookies are secure by default. Set SECURE_MODE=false for local
 HTTP. The GET /api/order and /api/order_minimal lists and details use the
-same authenticated session and CSRF header.
+same authenticated session and CSRF header as GET /api/checkout/attempt/{id}.
+
+Set CLIENT_URL to the frontend origin used by Rust to enable the guest
+checkout GET endpoints for session restore, order history and checkout
+attempts. The signing secret and browser cookies are shared with Rust.
+Guest history and completed attempts remain available when new guest
+checkout is disabled.
 
 Set PHONE_CHECKOUT_ENABLED=true to enable POST /api/checkout/cart/quote.
 The route recalculates prices and availability from the catalog and does

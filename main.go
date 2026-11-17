@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -66,7 +67,8 @@ func run() error {
 				return errors.New("SECURE_MODE must be a boolean")
 			}
 		}
-		accounts = &accountAuth{db: pool, key: []byte(key), secureCookies: secureCookies}
+		accounts = &accountAuth{db: pool, key: []byte(key), secureCookies: secureCookies,
+			guestOrigin: strings.TrimRight(os.Getenv("CLIENT_URL"), "/")}
 	}
 
 	checkoutEnabled := false
