@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	jsonv2 "encoding/json/v2"
 	"errors"
@@ -129,18 +130,16 @@ func (auth *accountAuth) login(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, accountResponse{Claims: claims, User: user})
 }
 
-func (auth *accountAuth) check(w http.ResponseWriter, r *http.Request) {
+func (auth *accountAuth) session(r *http.Request) (accountClaims, error) {
+	var claims accountClaims
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
-		writeAccountUnauthorized(w, "No token")
-		return
+		return claims, errors.New("No token")
 	}
-	var claims accountClaims
 	_, err = jwt.ParseWithClaims(cookie.Value, &claims, auth.verificationKey,
 		jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired(), jwt.WithLeeway(time.Minute))
 	if err == nil && claims.Audience != nil {
-		writeAccountUnauthorized(w, "Invalid token: InvalidAudience")
-		return
+		return claims, errors.New("Invalid token: InvalidAudience")
 	}
 	if err != nil || !claims.ID.Valid || claims.CSRFToken == "" ||
 		claims.Email == nil || claims.IsAdmin == nil || claims.IsModerator == nil {
@@ -151,11 +150,18 @@ func (auth *accountAuth) check(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, jwt.ErrTokenExpired):
 			reason = "ExpiredSignature"
 		}
-		writeAccountUnauthorized(w, "Invalid token: "+reason)
+		return claims, errors.New("Invalid token: " + reason)
+	}
+	return claims, nil
+}
+
+func (auth *accountAuth) check(w http.ResponseWriter, r *http.Request) {
+	claims, err := auth.session(r)
+	if err != nil {
+		writeAccountUnauthorized(w, err.Error())
 		return
 	}
-	user, err := scanAccount(auth.db.QueryRow(r.Context(),
-		"SELECT "+accountColumns+", NULL::text FROM person WHERE id = $1", claims.ID))
+	user, err := auth.accountByID(r.Context(), claims.ID)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			slog.Error("read account for session failed")
@@ -165,6 +171,12 @@ func (auth *accountAuth) check(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, accountResponse{Claims: claims, User: user})
+}
+
+const accountSelect = "SELECT " + accountColumns + ", NULL::text FROM person"
+
+func (auth *accountAuth) accountByID(ctx context.Context, id pgtype.UUID) (account, error) {
+	return scanAccount(auth.db.QueryRow(ctx, accountSelect+" WHERE id = $1", id))
 }
 
 func (auth *accountAuth) verificationKey(_ *jwt.Token) (any, error) {
