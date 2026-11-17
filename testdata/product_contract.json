@@ -1,0 +1,2017 @@
+{
+  "rustCommit": "b9ab1eb723cd1f7792804a694b0d25e547ea8ed4",
+  "cases": [
+    {
+      "name": "full public list",
+      "path": "/api/product?sort=title",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501",
+            "title": "Альфа",
+            "fullTitle": "Альфа: крем для рук",
+            "description": "Мягкий уход",
+            "image": "/images/alpha.png",
+            "methodOfUse": "Утром",
+            "composition": "Масло ши",
+            "brandId": "00000000-0000-4000-8000-000000000101",
+            "brand": {
+              "id": "00000000-0000-4000-8000-000000000101",
+              "title": "Тёплый уход",
+              "description": "Описание крема",
+              "image": "/images/brand.png",
+              "manufacturer": "Производитель",
+              "importer": "Импортёр",
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05.123Z",
+              "updatedAt": "2025-03-04T05:06:07.123456Z"
+            },
+            "productScopes": [
+              {
+                "id": "00000000-0000-4000-8000-000000000411",
+                "title": "Руки",
+                "description": null,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "productTypeId": "00000000-0000-4000-8000-000000000401",
+            "productType": {
+              "id": "00000000-0000-4000-8000-000000000401",
+              "title": "Крем",
+              "description": null,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "countries": [
+              {
+                "id": "00000000-0000-4000-8000-000000000421",
+                "name": "Беларусь",
+                "code": "BY",
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "categories": [
+              {
+                "id": "00000000-0000-4000-8000-000000000201",
+                "title": "Очищение",
+                "description": "Мягкое очищение",
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "variants": [
+              {
+                "id": "00000000-0000-4000-8000-000000000602",
+                "productId": "00000000-0000-4000-8000-000000000501",
+                "volume": 25.0,
+                "costPrice": 19.3,
+                "price": 29.9,
+                "isDefault": false,
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000601",
+                "productId": "00000000-0000-4000-8000-000000000501",
+                "volume": 100.0,
+                "costPrice": 60.05,
+                "price": 90.13,
+                "isDefault": true,
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000603",
+                "productId": "00000000-0000-4000-8000-000000000501",
+                "volume": 150.0,
+                "costPrice": 90.0,
+                "price": 200.0,
+                "isDefault": false,
+                "isDeleted": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "promotions": [
+              {
+                "id": "00000000-0000-4000-8000-000000000702",
+                "title": "Два товара",
+                "description": null,
+                "discountType": "fixed",
+                "discountValue": 12.25,
+                "targetType": "product",
+                "productIds": [
+                  "00000000-0000-4000-8000-000000000501"
+                ],
+                "minQuantity": 2,
+                "buyQuantity": 3,
+                "getQuantity": 1,
+                "priority": 7,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000701",
+                "title": "Весь каталог",
+                "description": "Скидка на каталог",
+                "discountType": "percentage",
+                "discountValue": 20.5,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 2,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000706",
+                "title": "Каталог с привязкой",
+                "description": null,
+                "discountType": "percentage",
+                "discountValue": 10.0,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 1,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              }
+            ],
+            "promoCodes": [
+              {
+                "id": "00000000-0000-4000-8000-000000000711",
+                "code": "FIXTURE-ONLY",
+                "discountType": "percentage",
+                "discountValue": 12.7,
+                "minOrderAmount": 39.99,
+                "maxDiscountAmount": 20.0,
+                "usageLimit": 1,
+                "usedCount": 1,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "applicableTo": [
+                  "00000000-0000-4000-8000-000000000501"
+                ],
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              }
+            ],
+            "isPriceHidden": true,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.120Z",
+            "updatedAt": null
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502",
+            "title": "Бета",
+            "fullTitle": "Бета: сыворотка",
+            "description": null,
+            "image": null,
+            "methodOfUse": null,
+            "composition": null,
+            "brandId": "00000000-0000-4000-8000-000000000102",
+            "brand": {
+              "id": "00000000-0000-4000-8000-000000000102",
+              "title": "Зимний уход",
+              "description": "Средства для рук",
+              "image": null,
+              "manufacturer": null,
+              "importer": null,
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "productScopes": [],
+            "productTypeId": "00000000-0000-4000-8000-000000000401",
+            "productType": {
+              "id": "00000000-0000-4000-8000-000000000401",
+              "title": "Крем",
+              "description": null,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "countries": [],
+            "categories": [
+              {
+                "id": "00000000-0000-4000-8000-000000000202",
+                "title": "Увлажнение",
+                "description": "Ежедневный уход",
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-03-04T05:06:07.123456Z"
+              }
+            ],
+            "variants": [
+              {
+                "id": "00000000-0000-4000-8000-000000000604",
+                "productId": "00000000-0000-4000-8000-000000000502",
+                "volume": 50.0,
+                "costPrice": 36.45,
+                "price": 49.99,
+                "isDefault": true,
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "promotions": [
+              {
+                "id": "00000000-0000-4000-8000-000000000702",
+                "title": "Два товара",
+                "description": null,
+                "discountType": "fixed",
+                "discountValue": 12.25,
+                "targetType": "product",
+                "productIds": [
+                  "00000000-0000-4000-8000-000000000502"
+                ],
+                "minQuantity": 2,
+                "buyQuantity": 3,
+                "getQuantity": 1,
+                "priority": 7,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000701",
+                "title": "Весь каталог",
+                "description": "Скидка на каталог",
+                "discountType": "percentage",
+                "discountValue": 20.5,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 2,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000706",
+                "title": "Каталог с привязкой",
+                "description": null,
+                "discountType": "percentage",
+                "discountValue": 10.0,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 1,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              }
+            ],
+            "promoCodes": [],
+            "isPriceHidden": false,
+            "isDeleted": false,
+            "createdAt": "2025-05-01T03:04:05Z",
+            "updatedAt": "2025-06-01T01:02:03.123450Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503",
+            "title": "Гамма",
+            "fullTitle": "Без вариантов",
+            "description": null,
+            "image": null,
+            "methodOfUse": null,
+            "composition": null,
+            "brandId": "00000000-0000-4000-8000-000000000101",
+            "brand": {
+              "id": "00000000-0000-4000-8000-000000000101",
+              "title": "Тёплый уход",
+              "description": "Описание крема",
+              "image": "/images/brand.png",
+              "manufacturer": "Производитель",
+              "importer": "Импортёр",
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05.123Z",
+              "updatedAt": "2025-03-04T05:06:07.123456Z"
+            },
+            "productScopes": [],
+            "productTypeId": "00000000-0000-4000-8000-000000000401",
+            "productType": {
+              "id": "00000000-0000-4000-8000-000000000401",
+              "title": "Крем",
+              "description": null,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "countries": [],
+            "categories": [],
+            "variants": [],
+            "promotions": [
+              {
+                "id": "00000000-0000-4000-8000-000000000701",
+                "title": "Весь каталог",
+                "description": "Скидка на каталог",
+                "discountType": "percentage",
+                "discountValue": 20.5,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 2,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000706",
+                "title": "Каталог с привязкой",
+                "description": null,
+                "discountType": "percentage",
+                "discountValue": 10.0,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 1,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              }
+            ],
+            "promoCodes": [],
+            "isPriceHidden": false,
+            "isDeleted": false,
+            "createdAt": "2025-04-01T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "archive included",
+      "path": "/api/product?includeDeleted=true&sort=title",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 4,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000504"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "title search",
+      "path": "/api/product?title=%D0%90%D0%9B%D0%AC%D0%A4",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "full title search",
+      "path": "/api/product?fullTitle=%D0%A1%D0%AB%D0%92%D0%9E%D0%A0%D0%9E%D0%A2%D0%9A%D0%90",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "description search",
+      "path": "/api/product?description=%D0%9C%D0%AF%D0%93%D0%9A%D0%98%D0%99",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "composition search",
+      "path": "/api/product?composition=%D0%BC%D0%B0%D1%81%D0%BB%D0%BE",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "multiple brands",
+      "path": "/api/product?brandId=00000000-0000-4000-8000-000000000101%2C+00000000-0000-4000-8000-000000000102&sort=title",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "category and brand",
+      "path": "/api/product?categoryId=00000000-0000-4000-8000-000000000202&brandId=00000000-0000-4000-8000-000000000102",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "scope",
+      "path": "/api/product?productScopeId=00000000-0000-4000-8000-000000000411",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "country",
+      "path": "/api/product?countryId=00000000-0000-4000-8000-000000000421",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "archived category filter",
+      "path": "/api/product?categoryId=00000000-0000-4000-8000-000000000203",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "minimum price exact real boundary",
+      "path": "/api/product?minPrice=29.9&sort=title",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "maximum price exact real boundary",
+      "path": "/api/product?maxPrice=29.9&sort=title",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "price range follows independent variants",
+      "path": "/api/product?minPrice=125&maxPrice=30",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "volume range follows independent variants",
+      "path": "/api/product?minVolume=90&maxVolume=30",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "by default variant price",
+      "path": "/api/product?sort=price",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "by default variant descending price",
+      "path": "/api/product?sort=-price",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "by default variant volume",
+      "path": "/api/product?sort=volume",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "by created timestamp",
+      "path": "/api/product?sort=-created_at",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "paginated total",
+      "path": "/api/product?sort=title&page=2&limit=1",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000502",
+            "title": "Бета",
+            "fullTitle": "Бета: сыворотка",
+            "description": null,
+            "image": null,
+            "methodOfUse": null,
+            "composition": null,
+            "brandId": "00000000-0000-4000-8000-000000000102",
+            "brand": {
+              "id": "00000000-0000-4000-8000-000000000102",
+              "title": "Зимний уход",
+              "description": "Средства для рук",
+              "image": null,
+              "manufacturer": null,
+              "importer": null,
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "productScopes": [],
+            "productTypeId": "00000000-0000-4000-8000-000000000401",
+            "productType": {
+              "id": "00000000-0000-4000-8000-000000000401",
+              "title": "Крем",
+              "description": null,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            "countries": [],
+            "categories": [
+              {
+                "id": "00000000-0000-4000-8000-000000000202",
+                "title": "Увлажнение",
+                "description": "Ежедневный уход",
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-03-04T05:06:07.123456Z"
+              }
+            ],
+            "variants": [
+              {
+                "id": "00000000-0000-4000-8000-000000000604",
+                "productId": "00000000-0000-4000-8000-000000000502",
+                "volume": 50.0,
+                "costPrice": 36.45,
+                "price": 49.99,
+                "isDefault": true,
+                "isDeleted": false,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": null
+              }
+            ],
+            "promotions": [
+              {
+                "id": "00000000-0000-4000-8000-000000000702",
+                "title": "Два товара",
+                "description": null,
+                "discountType": "fixed",
+                "discountValue": 12.25,
+                "targetType": "product",
+                "productIds": [
+                  "00000000-0000-4000-8000-000000000502"
+                ],
+                "minQuantity": 2,
+                "buyQuantity": 3,
+                "getQuantity": 1,
+                "priority": 7,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000701",
+                "title": "Весь каталог",
+                "description": "Скидка на каталог",
+                "discountType": "percentage",
+                "discountValue": 20.5,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 2,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000706",
+                "title": "Каталог с привязкой",
+                "description": null,
+                "discountType": "percentage",
+                "discountValue": 10.0,
+                "targetType": "all",
+                "productIds": [],
+                "minQuantity": null,
+                "buyQuantity": null,
+                "getQuantity": null,
+                "priority": 1,
+                "validFrom": "2020-01-01T00:00:00Z",
+                "validUntil": "2099-01-01T00:00:00Z",
+                "isActive": true,
+                "createdAt": "2025-01-02T03:04:05Z",
+                "updatedAt": "2025-01-02T03:04:05Z"
+              }
+            ],
+            "promoCodes": [],
+            "isPriceHidden": false,
+            "isDeleted": false,
+            "createdAt": "2025-05-01T03:04:05Z",
+            "updatedAt": "2025-06-01T01:02:03.123450Z"
+          }
+        ],
+        "page": 2,
+        "limit": 1
+      }
+    },
+    {
+      "name": "promotions filter in stock catalog",
+      "path": "/api/product?hasPromotion=true&sort=title",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000502"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000503"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "without promotion",
+      "path": "/api/product?hasPromotion=false",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "empty search",
+      "path": "/api/product?title=none",
+      "unordered": false,
+      "idsOnly": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "invalid min price",
+      "path": "/api/product?minPrice=no",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: invalid float literal"
+    },
+    {
+      "name": "invalid promotion flag",
+      "path": "/api/product?hasPromotion=1",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: provided string was not `true` or `false`"
+    },
+    {
+      "name": "full product detail",
+      "path": "/api/product/00000000-0000-4000-8000-000000000501",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000501",
+          "title": "Альфа",
+          "fullTitle": "Альфа: крем для рук",
+          "description": "Мягкий уход",
+          "image": "/images/alpha.png",
+          "methodOfUse": "Утром",
+          "composition": "Масло ши",
+          "brandId": "00000000-0000-4000-8000-000000000101",
+          "brand": {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          "productScopes": [
+            {
+              "id": "00000000-0000-4000-8000-000000000411",
+              "title": "Руки",
+              "description": null,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            }
+          ],
+          "productTypeId": "00000000-0000-4000-8000-000000000401",
+          "productType": {
+            "id": "00000000-0000-4000-8000-000000000401",
+            "title": "Крем",
+            "description": null,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "countries": [
+            {
+              "id": "00000000-0000-4000-8000-000000000421",
+              "name": "Беларусь",
+              "code": "BY",
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            }
+          ],
+          "categories": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "title": "Очищение",
+              "description": "Мягкое очищение",
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            }
+          ],
+          "variants": [
+            {
+              "id": "00000000-0000-4000-8000-000000000602",
+              "productId": "00000000-0000-4000-8000-000000000501",
+              "volume": 25.0,
+              "costPrice": 19.3,
+              "price": 29.9,
+              "isDefault": false,
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000601",
+              "productId": "00000000-0000-4000-8000-000000000501",
+              "volume": 100.0,
+              "costPrice": 60.05,
+              "price": 90.13,
+              "isDefault": true,
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000603",
+              "productId": "00000000-0000-4000-8000-000000000501",
+              "volume": 150.0,
+              "costPrice": 90.0,
+              "price": 200.0,
+              "isDefault": false,
+              "isDeleted": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            }
+          ],
+          "promotions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000702",
+              "title": "Два товара",
+              "description": null,
+              "discountType": "fixed",
+              "discountValue": 12.25,
+              "targetType": "product",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000501"
+              ],
+              "minQuantity": 2,
+              "buyQuantity": 3,
+              "getQuantity": 1,
+              "priority": 7,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000701",
+              "title": "Весь каталог",
+              "description": "Скидка на каталог",
+              "discountType": "percentage",
+              "discountValue": 20.5,
+              "targetType": "all",
+              "productIds": [],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 2,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000706",
+              "title": "Каталог с привязкой",
+              "description": null,
+              "discountType": "percentage",
+              "discountValue": 10.0,
+              "targetType": "all",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000502"
+              ],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 1,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            }
+          ],
+          "promoCodes": [
+            {
+              "id": "00000000-0000-4000-8000-000000000711",
+              "code": "FIXTURE-ONLY",
+              "discountType": "percentage",
+              "discountValue": 12.7,
+              "minOrderAmount": 39.99,
+              "maxDiscountAmount": 20.0,
+              "usageLimit": 1,
+              "usedCount": 1,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "applicableTo": [
+                "00000000-0000-4000-8000-000000000501"
+              ],
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            }
+          ],
+          "isPriceHidden": true,
+          "isDeleted": false,
+          "createdAt": "2025-01-02T03:04:05.120Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "other product detail",
+      "path": "/api/product/00000000-0000-4000-8000-000000000502",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000502",
+          "title": "Бета",
+          "fullTitle": "Бета: сыворотка",
+          "description": null,
+          "image": null,
+          "methodOfUse": null,
+          "composition": null,
+          "brandId": "00000000-0000-4000-8000-000000000102",
+          "brand": {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "productScopes": [],
+          "productTypeId": "00000000-0000-4000-8000-000000000401",
+          "productType": {
+            "id": "00000000-0000-4000-8000-000000000401",
+            "title": "Крем",
+            "description": null,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "countries": [],
+          "categories": [
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "title": "Увлажнение",
+              "description": "Ежедневный уход",
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-03-04T05:06:07.123456Z"
+            }
+          ],
+          "variants": [
+            {
+              "id": "00000000-0000-4000-8000-000000000604",
+              "productId": "00000000-0000-4000-8000-000000000502",
+              "volume": 50.0,
+              "costPrice": 36.45,
+              "price": 49.99,
+              "isDefault": true,
+              "isDeleted": false,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": null
+            }
+          ],
+          "promotions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000702",
+              "title": "Два товара",
+              "description": null,
+              "discountType": "fixed",
+              "discountValue": 12.25,
+              "targetType": "product",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000502"
+              ],
+              "minQuantity": 2,
+              "buyQuantity": 3,
+              "getQuantity": 1,
+              "priority": 7,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000701",
+              "title": "Весь каталог",
+              "description": "Скидка на каталог",
+              "discountType": "percentage",
+              "discountValue": 20.5,
+              "targetType": "all",
+              "productIds": [],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 2,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000706",
+              "title": "Каталог с привязкой",
+              "description": null,
+              "discountType": "percentage",
+              "discountValue": 10.0,
+              "targetType": "all",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000502"
+              ],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 1,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            }
+          ],
+          "promoCodes": [],
+          "isPriceHidden": false,
+          "isDeleted": false,
+          "createdAt": "2025-05-01T03:04:05Z",
+          "updatedAt": "2025-06-01T01:02:03.123450Z"
+        }
+      }
+    },
+    {
+      "name": "product without variants",
+      "path": "/api/product/00000000-0000-4000-8000-000000000503",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000503",
+          "title": "Гамма",
+          "fullTitle": "Без вариантов",
+          "description": null,
+          "image": null,
+          "methodOfUse": null,
+          "composition": null,
+          "brandId": "00000000-0000-4000-8000-000000000101",
+          "brand": {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          "productScopes": [],
+          "productTypeId": "00000000-0000-4000-8000-000000000401",
+          "productType": {
+            "id": "00000000-0000-4000-8000-000000000401",
+            "title": "Крем",
+            "description": null,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "countries": [],
+          "categories": [],
+          "variants": [],
+          "promotions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000701",
+              "title": "Весь каталог",
+              "description": "Скидка на каталог",
+              "discountType": "percentage",
+              "discountValue": 20.5,
+              "targetType": "all",
+              "productIds": [],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 2,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000706",
+              "title": "Каталог с привязкой",
+              "description": null,
+              "discountType": "percentage",
+              "discountValue": 10.0,
+              "targetType": "all",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000502"
+              ],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 1,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            }
+          ],
+          "promoCodes": [],
+          "isPriceHidden": false,
+          "isDeleted": false,
+          "createdAt": "2025-04-01T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "archived product details",
+      "path": "/api/product/00000000-0000-4000-8000-000000000504",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000504",
+          "title": "Дельта",
+          "fullTitle": "Архив",
+          "description": null,
+          "image": null,
+          "methodOfUse": null,
+          "composition": null,
+          "brandId": "00000000-0000-4000-8000-000000000103",
+          "brand": {
+            "id": "00000000-0000-4000-8000-000000000103",
+            "title": "Архивный уход",
+            "description": "Описание архивной марки",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "productScopes": [],
+          "productTypeId": "00000000-0000-4000-8000-000000000401",
+          "productType": {
+            "id": "00000000-0000-4000-8000-000000000401",
+            "title": "Крем",
+            "description": null,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          "countries": [],
+          "categories": [],
+          "variants": [],
+          "promotions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000701",
+              "title": "Весь каталог",
+              "description": "Скидка на каталог",
+              "discountType": "percentage",
+              "discountValue": 20.5,
+              "targetType": "all",
+              "productIds": [],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 2,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000706",
+              "title": "Каталог с привязкой",
+              "description": null,
+              "discountType": "percentage",
+              "discountValue": 10.0,
+              "targetType": "all",
+              "productIds": [
+                "00000000-0000-4000-8000-000000000502"
+              ],
+              "minQuantity": null,
+              "buyQuantity": null,
+              "getQuantity": null,
+              "priority": 1,
+              "validFrom": "2020-01-01T00:00:00Z",
+              "validUntil": "2099-01-01T00:00:00Z",
+              "isActive": true,
+              "createdAt": "2025-01-02T03:04:05Z",
+              "updatedAt": "2025-01-02T03:04:05Z"
+            }
+          ],
+          "promoCodes": [],
+          "isPriceHidden": false,
+          "isDeleted": true,
+          "createdAt": "2025-03-01T03:04:05Z",
+          "updatedAt": "2025-05-01T01:02:03Z"
+        }
+      }
+    },
+    {
+      "name": "missing product details",
+      "path": "/api/product/00000000-0000-4000-8000-000000000999",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 404,
+      "allowCredentials": "true"
+    },
+    {
+      "name": "malformed product id",
+      "path": "/api/product/invalid",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "UUID parsing failed: invalid character: found `i` at 0"
+    },
+    {
+      "name": "variant list missing filters",
+      "path": "/api/product_variant",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: missing field `volume`"
+    },
+    {
+      "name": "variant list by product missing filters",
+      "path": "/api/product_variant?productId=00000000-0000-4000-8000-000000000501",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: missing field `volume`"
+    },
+    {
+      "name": "variant list with price and volume",
+      "path": "/api/product_variant?productId=00000000-0000-4000-8000-000000000501&volume=25&price=29.9",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000602",
+            "productId": "00000000-0000-4000-8000-000000000501",
+            "volume": 25.0,
+            "costPrice": 19.3,
+            "price": 29.9,
+            "isDefault": false,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "variant with exact decimal cost",
+      "path": "/api/product_variant/00000000-0000-4000-8000-000000000601",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000601",
+          "productId": "00000000-0000-4000-8000-000000000501",
+          "volume": 100.0,
+          "costPrice": 60.05,
+          "price": 90.13,
+          "isDefault": true,
+          "isDeleted": false,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "archived variant details",
+      "path": "/api/product_variant/00000000-0000-4000-8000-000000000603",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000603",
+          "productId": "00000000-0000-4000-8000-000000000501",
+          "volume": 150.0,
+          "costPrice": 90.0,
+          "price": 200.0,
+          "isDefault": false,
+          "isDeleted": true,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "missing variant details",
+      "path": "/api/product_variant/00000000-0000-4000-8000-000000000999",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 404,
+      "allowCredentials": "true"
+    },
+    {
+      "name": "available product promotions",
+      "path": "/api/product/00000000-0000-4000-8000-000000000501/promotions",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000702",
+            "title": "Два товара",
+            "description": null,
+            "discountType": "fixed",
+            "discountValue": 12.25,
+            "targetType": "product",
+            "productIds": [
+              "00000000-0000-4000-8000-000000000501"
+            ],
+            "minQuantity": 2,
+            "buyQuantity": 3,
+            "getQuantity": 1,
+            "priority": 7,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000701",
+            "title": "Весь каталог",
+            "description": "Скидка на каталог",
+            "discountType": "percentage",
+            "discountValue": 20.5,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 2,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000706",
+            "title": "Каталог с привязкой",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 10.0,
+            "targetType": "all",
+            "productIds": [
+              "00000000-0000-4000-8000-000000000502"
+            ],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 1,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "global promotions even without product record",
+      "path": "/api/product/00000000-0000-4000-8000-000000000999/promotions",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000701",
+            "title": "Весь каталог",
+            "description": "Скидка на каталог",
+            "discountType": "percentage",
+            "discountValue": 20.5,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 2,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000706",
+            "title": "Каталог с привязкой",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 10.0,
+            "targetType": "all",
+            "productIds": [
+              "00000000-0000-4000-8000-000000000502"
+            ],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 1,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "available product promo codes",
+      "path": "/api/product/00000000-0000-4000-8000-000000000501/promo-codes",
+      "unordered": true,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000711",
+            "code": "FIXTURE-ONLY",
+            "discountType": "percentage",
+            "discountValue": 12.7,
+            "minOrderAmount": 39.99,
+            "maxDiscountAmount": 20.0,
+            "usageLimit": 1,
+            "usedCount": 1,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "applicableTo": [
+              "00000000-0000-4000-8000-000000000501"
+            ],
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "no promo codes",
+      "path": "/api/product/00000000-0000-4000-8000-000000000502/promo-codes",
+      "unordered": true,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "all promotion states",
+      "path": "/api/promotion",
+      "unordered": true,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 6,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000706",
+            "title": "Каталог с привязкой",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 10.0,
+            "targetType": "all",
+            "productIds": [
+              "00000000-0000-4000-8000-000000000502"
+            ],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 1,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000701",
+            "title": "Весь каталог",
+            "description": "Скидка на каталог",
+            "discountType": "percentage",
+            "discountValue": 20.5,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 2,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000702",
+            "title": "Два товара",
+            "description": null,
+            "discountType": "fixed",
+            "discountValue": 12.25,
+            "targetType": "product",
+            "productIds": [
+              "00000000-0000-4000-8000-000000000501",
+              "00000000-0000-4000-8000-000000000502"
+            ],
+            "minQuantity": 2,
+            "buyQuantity": 3,
+            "getQuantity": 1,
+            "priority": 7,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000704",
+            "title": "Будущая",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 7.0,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 10,
+            "validFrom": "2100-01-01T00:00:00Z",
+            "validUntil": "2199-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000703",
+            "title": "Завершена",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 5.0,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 10,
+            "validFrom": "2000-01-01T00:00:00Z",
+            "validUntil": "2001-01-01T00:00:00Z",
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000705",
+            "title": "Выключена",
+            "description": null,
+            "discountType": "percentage",
+            "discountValue": 9.0,
+            "targetType": "all",
+            "productIds": [],
+            "minQuantity": null,
+            "buyQuantity": null,
+            "getQuantity": null,
+            "priority": 10,
+            "validFrom": "2020-01-01T00:00:00Z",
+            "validUntil": "2099-01-01T00:00:00Z",
+            "isActive": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "inactive promotion details",
+      "path": "/api/promotion/00000000-0000-4000-8000-000000000705",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000705",
+          "title": "Выключена",
+          "description": null,
+          "discountType": "percentage",
+          "discountValue": 9.0,
+          "targetType": "all",
+          "productIds": [],
+          "minQuantity": null,
+          "buyQuantity": null,
+          "getQuantity": null,
+          "priority": 10,
+          "validFrom": "2020-01-01T00:00:00Z",
+          "validUntil": "2099-01-01T00:00:00Z",
+          "isActive": false,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": "2025-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "targeted promotion details",
+      "path": "/api/promotion/00000000-0000-4000-8000-000000000702",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000702",
+          "title": "Два товара",
+          "description": null,
+          "discountType": "fixed",
+          "discountValue": 12.25,
+          "targetType": "product",
+          "productIds": [
+            "00000000-0000-4000-8000-000000000501",
+            "00000000-0000-4000-8000-000000000502"
+          ],
+          "minQuantity": 2,
+          "buyQuantity": 3,
+          "getQuantity": 1,
+          "priority": 7,
+          "validFrom": "2020-01-01T00:00:00Z",
+          "validUntil": "2099-01-01T00:00:00Z",
+          "isActive": true,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": "2025-01-02T03:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "missing promotion details",
+      "path": "/api/promotion/00000000-0000-4000-8000-000000000999",
+      "unordered": false,
+      "idsOnly": false,
+      "status": 404,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "message": "Promotion not found",
+        "status": "error"
+      }
+    }
+  ]
+}

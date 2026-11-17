@@ -1,10 +1,10 @@
 SkViDerm Go backend
 ==================
 
-First migration slice: public read-only GET /api/brand, /api/brand/{id},
-/api/category, /api/category/{id}, and /api/banner. The Rust backend is
-the reference for behavior. This service expects the existing PostgreSQL
-schema, connects in read-only mode, and does not run migrations.
+The Go service implements public storefront reads for brands, categories,
+banners, products, variants, promotions and product promo codes. The
+Rust backend is the behavioral reference. The Go service connects to the
+existing PostgreSQL schema in read-only mode. Rust owns the migrations.
 
 Running locally
 ---------------
@@ -27,7 +27,7 @@ to point to it, then run:
 
 The suite uses temporary tables and synthetic data. It compares the Go
 HTTP handlers with responses observed from the Rust version pinned in
-testdata/catalog_contract.json. The Rust image was exercised with its
-original migrations. The Go tests verify both the public response envelope
+the catalog and product contract fixtures under testdata/. The Rust image
+was exercised with its original migrations. The Go tests verify both the public response envelope
 and the values. Only arrays without a defined ordering are normalized.
 GitHub Actions runs the tests with PostgreSQL and builds the Linux image.
