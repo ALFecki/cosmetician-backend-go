@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -56,8 +57,20 @@ func run() error {
 		return err
 	}
 
+	var accounts *accountAuth
+	if key := os.Getenv("JWT_SECRET"); key != "" {
+		secureCookies := true
+		if raw := os.Getenv("SECURE_MODE"); raw != "" {
+			secureCookies, err = strconv.ParseBool(raw)
+			if err != nil {
+				return errors.New("SECURE_MODE must be a boolean")
+			}
+		}
+		accounts = &accountAuth{db: pool, key: []byte(key), secureCookies: secureCookies}
+	}
+
 	server := &http.Server{
-		Addr: address, Handler: newHandler(pool, images),
+		Addr: address, Handler: newHandler(pool, images, accounts),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
 		WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second,
 	}
