@@ -17,4 +17,7 @@ INSERT INTO person (
      NULL, false, false, true, '2025-08-09T10:11:12Z', NULL, NULL, NULL, NULL, NULL),
     ('00000000-0000-4000-8000-000000000605', 'Тест', 'Пароль', NULL, 'long@example.invalid',
      '+375290000005', false, '$2a$05$......................YgIDy4hFBdVlc/6LHnD9mX488r9cLd2',
-     NULL, false, false, false, '2025-08-09T10:11:12Z', NULL, NULL, NULL, NULL, NULL);
+     NULL, false, false, false, '2025-08-09T10:11:12Z', NULL, NULL, NULL, NULL, NULL),
+    ('00000000-0000-4000-8000-000000000606', 'Другой', 'Модератор', NULL, 'moderator@example.invalid',
+     '+375290000006', NULL, NULL, NULL, true, false, false, '2025-08-09T10:11:12Z', NULL,
+     NULL, NULL, NULL, NULL);

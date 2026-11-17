@@ -47,6 +47,8 @@ func newHandler(db database, images *imageStore, accounts *accountAuth) http.Han
 	if accounts != nil {
 		mux.HandleFunc("POST /api/login", accounts.login)
 		mux.HandleFunc("GET /api/check_auth", accounts.check)
+		mux.HandleFunc("GET /api/person", accounts.listProfiles)
+		mux.HandleFunc("GET /api/person/{id}", accounts.profile)
 	}
 	if images != nil {
 		return storefrontCORS(images.routes(mux))
@@ -129,13 +131,11 @@ func parseListQuery(raw string, paginate bool, fields ...string) (url.Values, er
 func parseListFilter(values url.Values) (listFilter, error) {
 	filter := listFilter{page: 1}
 	if values.Has("includeDeleted") {
-		switch values.Get("includeDeleted") {
-		case "true":
-			filter.includeDeleted = true
-		case "false":
-		default:
-			return filter, errors.New("provided string was not `true` or `false`")
+		includeDeleted, err := parseQueryBool(values.Get("includeDeleted"))
+		if err != nil {
+			return filter, err
 		}
+		filter.includeDeleted = includeDeleted
 	}
 	if values.Has("page") {
 		page, err := parseQueryInt(values.Get("page"))
@@ -158,6 +158,17 @@ func parseListFilter(values url.Values) (listFilter, error) {
 		filter.limit = &limit
 	}
 	return filter, nil
+}
+
+func parseQueryBool(value string) (bool, error) {
+	switch value {
+	case "true":
+		return true, nil
+	case "false":
+		return false, nil
+	default:
+		return false, errors.New("provided string was not `true` or `false`")
+	}
 }
 
 func parseQueryInt(value string) (int32, error) {

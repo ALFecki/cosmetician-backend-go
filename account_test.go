@@ -84,31 +84,7 @@ func TestLoginRequestValidation(t *testing.T) {
 }
 
 func TestAccountContract(t *testing.T) {
-	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
-	if dsn == "" {
-		t.Skip("set SKVIDERM_TEST_DATABASE_URL to run the PostgreSQL contract tests")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	conn, err := pgx.Connect(ctx, dsn)
-	if err != nil {
-		t.Fatal("connect to test PostgreSQL:", err)
-	}
-	defer conn.Close(context.Background())
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Rollback(context.Background())
-	for _, name := range []string{"account_schema.sql", "account_rows.sql"} {
-		sql, err := os.ReadFile("testdata/" + name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := tx.Exec(ctx, string(sql)); err != nil {
-			t.Fatalf("apply %s: %v", name, err)
-		}
-	}
+	tx := accountFixture(t)
 
 	key := []byte("fixture-secret-no-production")
 	for _, tc := range []struct {
@@ -177,6 +153,36 @@ func TestAccountContract(t *testing.T) {
 			t.Fatal("unexpected legacy profile or claims")
 		}
 	})
+}
+
+func accountFixture(t *testing.T) pgx.Tx {
+	t.Helper()
+	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("set SKVIDERM_TEST_DATABASE_URL to run the PostgreSQL contract tests")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	conn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		t.Fatal("connect to test PostgreSQL:", err)
+	}
+	t.Cleanup(func() { _ = conn.Close(context.Background()) })
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = tx.Rollback(context.Background()) })
+	for _, name := range []string{"account_schema.sql", "account_rows.sql"} {
+		sql, err := os.ReadFile("testdata/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.Exec(ctx, string(sql)); err != nil {
+			t.Fatalf("apply %s: %v", name, err)
+		}
+	}
+	return tx
 }
 
 func legacyAccountCookie(t *testing.T, method jwt.SigningMethod, key []byte, expires time.Time) *http.Cookie {
