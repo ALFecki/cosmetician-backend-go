@@ -77,6 +77,25 @@ func run() error {
 		}
 	}
 
+	if raw := os.Getenv("CART_STORAGE_ENABLED"); raw != "" {
+		enabled, err := strconv.ParseBool(raw)
+		if err != nil {
+			return errors.New("CART_STORAGE_ENABLED must be a boolean")
+		}
+		if enabled {
+			if !checkoutEnabled || accounts == nil {
+				return errors.New("CART_STORAGE_ENABLED requires PHONE_CHECKOUT_ENABLED and JWT_SECRET")
+			}
+			checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			_, err := pool.Exec(checkCtx, "SELECT 1 FROM cart_add_operation LIMIT 0")
+			cancel()
+			if err != nil {
+				return errors.New("cannot access cart_add_operation")
+			}
+			accounts.cartDB = pool
+		}
+	}
+
 	server := &http.Server{
 		Addr: address, Handler: newHandler(pool, images, accounts, checkoutEnabled),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,

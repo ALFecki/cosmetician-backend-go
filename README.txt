@@ -4,7 +4,8 @@ SkViDerm Go backend
 The Go service implements public storefront reads for brands, categories,
 banners, products, variants, promotions, product promo codes and images. The
 Rust backend is the behavioral reference. The Go service connects to the
-existing PostgreSQL schema in read-only mode. Rust owns the migrations.
+existing PostgreSQL schema. Transactions are read-only by default.
+Apply the Rust migrations before the Go migrations under migrations/.
 
 Running locally
 ---------------
@@ -32,6 +33,32 @@ To build the Linux production architecture on another machine:
 
     docker build --platform linux/amd64 -t cosmetician-backend-go .
 
+Account cart storage
+--------------------
+Apply migrations/0001_cart_add_operation.sql. Enable CART_STORAGE_ENABLED
+with JWT_SECRET and PHONE_CHECKOUT_ENABLED=true. The service opens
+explicit read-write transactions for the authenticated GET and PUT
+/api/checkout/cart, POST /api/checkout/cart/merge and
+POST /api/checkout/cart/items. POST /api/logout clears the session cookie.
+Route these account cart endpoints together. Checkout in Rust shares
+the PostgreSQL cart and locks the same customer row.
+
+For a new environment, start with an empty database or already migrated
+carts. Before switching an existing environment, pause legacy cart and
+checkout writes and the Redis cart synchronization job. Keep a backup,
+then run the commands with the connection for the store being migrated:
+
+    python3 scripts/legacy_carts.py snapshot /secure/path/carts.jsonl -- -h <redis-host>
+    python3 scripts/legacy_carts.py import /secure/path/carts.jsonl
+    python3 scripts/legacy_carts.py import /secure/path/carts.jsonl --apply
+
+Use REDISCLI_AUTH for Redis authentication and the PostgreSQL client
+environment (PGHOST, PGPORT, PGDATABASE, PGUSER and PGPASSFILE) for import.
+The first import command validates and reports counts. The second applies
+the snapshot in one transaction. A retry uses the same snapshot. Redis
+keys are retained. Go returns 503 if an active legacy cart still needs
+reconciliation.
+
 Contract tests
 --------------
 Start a disposable PostgreSQL 17 instance. Set SKVIDERM_TEST_DATABASE_URL
@@ -44,4 +71,8 @@ HTTP handlers with responses observed from the Rust version pinned in
 the catalog and product contract fixtures under testdata/. The Rust image
 was exercised with its original migrations. The Go tests verify both the public response envelope
 and the values. Only arrays without a defined ordering are normalized.
+Run the importer tests with:
+
+    python3 -B -m unittest discover -s scripts -p test_legacy_carts.py
+
 GitHub Actions runs the tests with PostgreSQL and builds the Linux image.

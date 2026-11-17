@@ -18,6 +18,7 @@ import (
 
 type accountAuth struct {
 	db            database
+	cartDB        cartDatabase
 	key           []byte
 	secureCookies bool
 }
@@ -118,13 +119,28 @@ func (auth *accountAuth) login(w http.ResponseWriter, r *http.Request) {
 		writeText(w, http.StatusInternalServerError, "Can't create token")
 		return
 	}
-	cookie := http.Cookie{Name: "jwt", Value: token, Path: "/", HttpOnly: true, Secure: auth.secureCookies}
+	http.SetCookie(w, auth.sessionCookie(token))
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, accountResponse{Claims: claims, User: user})
+}
+
+func (auth *accountAuth) sessionCookie(token string) *http.Cookie {
+	cookie := &http.Cookie{Name: "jwt", Value: token, Path: "/", HttpOnly: true, Secure: auth.secureCookies}
 	if auth.secureCookies {
 		cookie.SameSite = http.SameSiteNoneMode
 	}
-	http.SetCookie(w, &cookie)
+	return cookie
+}
+
+func (auth *accountAuth) logout(w http.ResponseWriter, r *http.Request) {
+	if _, ok := auth.protectedSession(w, r); !ok {
+		return
+	}
+	cookie := auth.sessionCookie("")
+	cookie.MaxAge = -1
+	http.SetCookie(w, cookie)
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, accountResponse{Claims: claims, User: user})
+	w.WriteHeader(http.StatusOK)
 }
 
 func (auth *accountAuth) session(r *http.Request) (accountClaims, error) {
