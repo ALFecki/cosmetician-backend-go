@@ -40,13 +40,16 @@ func newHandler(db database) http.Handler {
 	})
 	registerCatalog(mux, db, "/api/brand", brands)
 	registerCatalog(mux, db, "/api/category", categories)
+	registerCatalog(mux, db, "/api/country", countries)
+	registerCatalog(mux, db, "/api/product_scope", productScopes)
+	registerCatalog(mux, db, "/api/product_type", productTypes)
 	registerProductRoutes(mux, db)
 	return storefrontCORS(mux)
 }
 
 func registerCatalog(mux *http.ServeMux, db database, path string, resource catalogResource) {
 	mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
-		values, err := parseListQuery(r.URL.RawQuery, "title", "description")
+		values, err := parseListQuery(r.URL.RawQuery, resource.paginate, resource.filters...)
 		if err != nil {
 			writeQueryError(w, err)
 			return
@@ -56,7 +59,12 @@ func registerCatalog(mux *http.ServeMux, db database, path string, resource cata
 			writeQueryError(w, err)
 			return
 		}
-		entries, err := listCatalog(r.Context(), db, resource, filter)
+		query, args, err := catalogListSQL(resource, values, filter.includeDeleted)
+		if err != nil {
+			writeQueryError(w, err)
+			return
+		}
+		entries, err := listCatalog(r.Context(), db, resource, query, args)
 		if err != nil {
 			databaseFailure(w, "list "+path, err)
 			return
@@ -81,18 +89,26 @@ func registerCatalog(mux *http.ServeMux, db database, path string, resource cata
 }
 
 type listFilter struct {
-	title, description *string
-	includeDeleted     bool
-	page               int32
-	limit              *int32
+	includeDeleted bool
+	page           int32
+	limit          *int32
 }
 
-func parseListQuery(raw string, fields ...string) (url.Values, error) {
+func parseListQuery(raw string, paginate bool, fields ...string) (url.Values, error) {
 	values, err := url.ParseQuery(raw)
 	if err != nil {
 		return nil, errors.New("invalid query parameters")
 	}
-	for _, key := range append(fields, "id", "includeDeleted", "page", "limit") {
+	knownFields := make([]string, 0, len(fields)+4)
+	knownFields = append(knownFields, fields...)
+	knownFields = append(knownFields, "id", "includeDeleted")
+	if paginate {
+		knownFields = append(knownFields, "page", "limit")
+	} else {
+		values.Del("page")
+		values.Del("limit")
+	}
+	for _, key := range knownFields {
 		if len(values[key]) > 1 {
 			return nil, fmt.Errorf("duplicate field `%s`", key)
 		}
@@ -105,14 +121,6 @@ func parseListQuery(raw string, fields ...string) (url.Values, error) {
 
 func parseListFilter(values url.Values) (listFilter, error) {
 	filter := listFilter{page: 1}
-	if values.Has("title") {
-		value := strings.ToLower(values.Get("title"))
-		filter.title = &value
-	}
-	if values.Has("description") {
-		value := strings.ToLower(values.Get("description"))
-		filter.description = &value
-	}
 	if values.Has("includeDeleted") {
 		switch values.Get("includeDeleted") {
 		case "true":
