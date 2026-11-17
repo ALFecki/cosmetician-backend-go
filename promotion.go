@@ -69,7 +69,16 @@ func productPromotions(ctx context.Context, db database, id pgtype.UUID) ([]prom
 		" GROUP BY promo.id ORDER BY promo.priority DESC", id)
 }
 
-func loadListPromotions(ctx context.Context, db database, ids []pgtype.UUID, byID map[pgtype.UUID]*product) error {
+func loadListPromotions(ctx context.Context, db database, entries []product) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	ids := make([]pgtype.UUID, 0, len(entries))
+	byID := make(map[pgtype.UUID]*product, len(entries))
+	for i := range entries {
+		ids = append(ids, entries[i].ID)
+		byID[entries[i].ID] = &entries[i]
+	}
 	rows, err := queryStructs[struct {
 		Owner pgtype.UUID
 		promotion

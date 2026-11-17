@@ -6,9 +6,7 @@ import (
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"log/slog"
-	"mime"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -74,8 +72,7 @@ func scanAccount(row pgx.Row) (account, error) {
 }
 
 func (auth *accountAuth) login(w http.ResponseWriter, r *http.Request) {
-	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || (contentType != "application/json" && !strings.HasSuffix(contentType, "+json")) {
+	if !isJSONRequest(r) {
 		writeText(w, http.StatusBadRequest, "Content type error")
 		return
 	}
@@ -83,7 +80,7 @@ func (auth *accountAuth) login(w http.ResponseWriter, r *http.Request) {
 		Email    *string `json:"email"`
 		Password *string `json:"password"`
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodySize)
 	if err := jsonv2.UnmarshalRead(r.Body, &credentials); err != nil || credentials.Email == nil || credentials.Password == nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {

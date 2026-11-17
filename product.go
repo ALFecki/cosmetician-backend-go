@@ -99,7 +99,7 @@ func queryStructs[T any](ctx context.Context, db database, query string, args ..
 	return pgx.CollectRows(rows, pgx.RowToStructByPos[T])
 }
 
-func loadProductRelations(ctx context.Context, db database, entries []product, detail bool) error {
+func loadProductRelations(ctx context.Context, db database, entries []product) error {
 	if len(entries) == 0 {
 		return nil
 	}
@@ -167,15 +167,6 @@ func loadProductRelations(ctx context.Context, db database, entries []product, d
 	for _, item := range variants {
 		entry := byID[item.ProductID]
 		entry.Variants = append(entry.Variants, item)
-	}
-	if detail {
-		promos, err := productPromotions(ctx, db, entries[0].ID)
-		if err != nil {
-			return err
-		}
-		entries[0].Promotions = promos
-	} else if err := loadListPromotions(ctx, db, ids, byID); err != nil {
-		return err
 	}
 	codes, err := queryStructs[productCodeRow](ctx, db, `
         SELECT j.product_id, `+promoCodeColumns+`

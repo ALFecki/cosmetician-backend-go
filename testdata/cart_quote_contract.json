@@ -1,0 +1,2618 @@
+{
+  "rustCommit": "b9ab1eb723cd1f7792804a694b0d25e547ea8ed4",
+  "cases": [
+    {
+      "name": "disabled checkout",
+      "body": {
+        "items": []
+      },
+      "enabled": false,
+      "fullProduct": false,
+      "expected": {
+        "status": 503,
+        "body": "Новое оформление пока недоступно"
+      }
+    },
+    {
+      "name": "empty cart",
+      "body": {
+        "items": []
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 0.0,
+            "promoCodeId": null,
+            "discountAmount": 0.0,
+            "products": [],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 0,
+          "promotionDiscountCents": 0,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 0
+        }
+      }
+    },
+    {
+      "name": "one item, hidden price",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": true,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501",
+                  "title": "Альфа",
+                  "fullTitle": "Альфа: крем для рук",
+                  "description": "Мягкий уход",
+                  "image": "/images/alpha.png",
+                  "methodOfUse": "Утром",
+                  "composition": "Масло ши",
+                  "brandId": "00000000-0000-4000-8000-000000000101",
+                  "brand": {
+                    "id": "00000000-0000-4000-8000-000000000101",
+                    "title": "Тёплый уход",
+                    "description": "Описание крема",
+                    "image": "/images/brand.png",
+                    "manufacturer": "Производитель",
+                    "importer": "Импортёр",
+                    "isDeleted": false,
+                    "createdAt": "2025-01-02T03:04:05.123Z",
+                    "updatedAt": "2025-03-04T05:06:07.123456Z"
+                  },
+                  "productScopes": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000411",
+                      "title": "Руки",
+                      "description": null,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    }
+                  ],
+                  "productTypeId": "00000000-0000-4000-8000-000000000401",
+                  "productType": {
+                    "id": "00000000-0000-4000-8000-000000000401",
+                    "title": "Крем",
+                    "description": null,
+                    "createdAt": "2025-01-02T03:04:05Z",
+                    "updatedAt": null
+                  },
+                  "countries": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000421",
+                      "name": "Беларусь",
+                      "code": "BY",
+                      "isDeleted": false,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    }
+                  ],
+                  "categories": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000201",
+                      "title": "Очищение",
+                      "description": "Мягкое очищение",
+                      "isDeleted": false,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    }
+                  ],
+                  "variants": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000602",
+                      "productId": "00000000-0000-4000-8000-000000000501",
+                      "volume": 25.0,
+                      "costPrice": 19.3,
+                      "price": 29.9,
+                      "isDefault": false,
+                      "isDeleted": false,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000601",
+                      "productId": "00000000-0000-4000-8000-000000000501",
+                      "volume": 100.0,
+                      "costPrice": 60.05,
+                      "price": 90.13,
+                      "isDefault": true,
+                      "isDeleted": false,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000603",
+                      "productId": "00000000-0000-4000-8000-000000000501",
+                      "volume": 150.0,
+                      "costPrice": 90.0,
+                      "price": 200.0,
+                      "isDefault": false,
+                      "isDeleted": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": null
+                    }
+                  ],
+                  "promotions": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000702",
+                      "title": "Два товара",
+                      "description": null,
+                      "discountType": "fixed",
+                      "discountValue": 12.25,
+                      "targetType": "product",
+                      "productIds": [
+                        "00000000-0000-4000-8000-000000000501"
+                      ],
+                      "minQuantity": 2,
+                      "buyQuantity": 3,
+                      "getQuantity": 1,
+                      "priority": 7,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000707",
+                      "title": "Бренд",
+                      "description": null,
+                      "discountType": "fixed",
+                      "discountValue": 17.0,
+                      "targetType": "brand",
+                      "productIds": [
+                        "00000000-0000-4000-8000-000000000501"
+                      ],
+                      "minQuantity": null,
+                      "buyQuantity": null,
+                      "getQuantity": null,
+                      "priority": 4,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000708",
+                      "title": "Категория",
+                      "description": null,
+                      "discountType": "fixed",
+                      "discountValue": 19.0,
+                      "targetType": "category",
+                      "productIds": [
+                        "00000000-0000-4000-8000-000000000501"
+                      ],
+                      "minQuantity": null,
+                      "buyQuantity": null,
+                      "getQuantity": null,
+                      "priority": 3,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000701",
+                      "title": "Весь каталог",
+                      "description": "Скидка на каталог",
+                      "discountType": "percentage",
+                      "discountValue": 20.5,
+                      "targetType": "all",
+                      "productIds": [],
+                      "minQuantity": null,
+                      "buyQuantity": null,
+                      "getQuantity": null,
+                      "priority": 2,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    },
+                    {
+                      "id": "00000000-0000-4000-8000-000000000706",
+                      "title": "Каталог с привязкой",
+                      "description": null,
+                      "discountType": "percentage",
+                      "discountValue": 10.0,
+                      "targetType": "all",
+                      "productIds": [
+                        "00000000-0000-4000-8000-000000000502"
+                      ],
+                      "minQuantity": null,
+                      "buyQuantity": null,
+                      "getQuantity": null,
+                      "priority": 1,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    }
+                  ],
+                  "promoCodes": [
+                    {
+                      "id": "00000000-0000-4000-8000-000000000711",
+                      "code": "FIXTURE-ONLY",
+                      "discountType": "percentage",
+                      "discountValue": 12.7,
+                      "minOrderAmount": 39.99,
+                      "maxDiscountAmount": 20.0,
+                      "usageLimit": 1,
+                      "usedCount": 1,
+                      "validFrom": "2020-01-01T00:00:00Z",
+                      "validUntil": "2099-01-01T00:00:00Z",
+                      "isActive": true,
+                      "applicableTo": [
+                        "00000000-0000-4000-8000-000000000501"
+                      ],
+                      "createdAt": "2025-01-02T03:04:05Z",
+                      "updatedAt": "2025-01-02T03:04:05Z"
+                    }
+                  ],
+                  "isPriceHidden": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05.120Z",
+                  "updatedAt": null
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "mixed variants and duplicate lines",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000604",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000602",
+            "quantity": 3
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 2
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 272.76,
+            "promoCodeId": null,
+            "discountAmount": 137.32,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 3,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              },
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000602",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 25.0,
+                  "costPrice": 19.3,
+                  "price": 29.9,
+                  "isDefault": false,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 3,
+                "historicalPrice": 29.9,
+                "historicalCostPrice": 19.3
+              },
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000502"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000604",
+                  "productId": "00000000-0000-4000-8000-000000000502",
+                  "volume": 50.0,
+                  "costPrice": 36.45,
+                  "price": 49.99,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 49.99,
+                "historicalCostPrice": 36.45
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 3
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000602",
+              "quantity": 3
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000604",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 41008,
+          "promotionDiscountCents": 13732,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 27276
+        }
+      }
+    },
+    {
+      "name": "not available and archived",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000603",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000604",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000607",
+            "quantity": 2
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000999",
+            "quantity": 3
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 22.49,
+            "promoCodeId": null,
+            "discountAmount": 27.5,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000502"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000604",
+                  "productId": "00000000-0000-4000-8000-000000000502",
+                  "volume": 50.0,
+                  "costPrice": 36.45,
+                  "price": 49.99,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 49.99,
+                "historicalCostPrice": 36.45
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000603",
+              "quantity": 1
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000604",
+              "quantity": 1
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000607",
+              "quantity": 2
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000999",
+              "quantity": 3
+            }
+          ],
+          "unavailableItems": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000603",
+              "quantity": 1
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000607",
+              "quantity": 2
+            },
+            {
+              "variantId": "00000000-0000-4000-8000-000000000999",
+              "quantity": 3
+            }
+          ],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 4999,
+          "promotionDiscountCents": 2750,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 2249
+        }
+      }
+    },
+    {
+      "name": "minimum quantity",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 0
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Количество товара должно быть от 1 до 99"
+      }
+    },
+    {
+      "name": "negative quantity",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": -1
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Количество товара должно быть от 1 до 99"
+      }
+    },
+    {
+      "name": "maximum quantity",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 99
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 6189.14,
+            "promoCodeId": null,
+            "discountAmount": 2733.73,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 99,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 99
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 892287,
+          "promotionDiscountCents": 273373,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 618914
+        }
+      }
+    },
+    {
+      "name": "invalid quantity",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 100
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Количество товара должно быть от 1 до 99"
+      }
+    },
+    {
+      "name": "combined quantities above limit",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 48
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 52
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Количество товара должно быть от 1 до 99"
+      }
+    },
+    {
+      "name": "nil variant id",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-0000-0000-000000000000",
+            "quantity": 1
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Количество товара должно быть от 1 до 99"
+      }
+    },
+    {
+      "name": "request item count exceeded",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          },
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ]
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Слишком много товаров в корзине"
+      }
+    },
+    {
+      "name": "pickup",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "pickup"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "local courier below threshold",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "standart"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 10,
+            "totalPrice": 60.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "standart",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 6039
+        }
+      }
+    },
+    {
+      "name": "local courier above threshold",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000608",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "standart"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 278.0,
+            "promoCodeId": null,
+            "discountAmount": 122.0,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000503"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000608",
+                  "productId": "00000000-0000-4000-8000-000000000503",
+                  "volume": 55.0,
+                  "costPrice": 36.0,
+                  "price": 400.0,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 400.0,
+                "historicalCostPrice": 36.0
+              }
+            ],
+            "deliveryMethod": "standart",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000608",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 40000,
+          "promotionDiscountCents": 12200,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 27800
+        }
+      }
+    },
+    {
+      "name": "postal pickup",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "post"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "post",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "postal courier below threshold",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "post",
+        "isCourierDelivery": true
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 10,
+            "totalPrice": 60.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "post",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": true,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 6039
+        }
+      }
+    },
+    {
+      "name": "postal courier above threshold",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000608",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "post",
+        "isCourierDelivery": true
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 278.0,
+            "promoCodeId": null,
+            "discountAmount": 122.0,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000503"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000608",
+                  "productId": "00000000-0000-4000-8000-000000000503",
+                  "volume": 55.0,
+                  "costPrice": 36.0,
+                  "price": 400.0,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 400.0,
+                "historicalCostPrice": 36.0
+              }
+            ],
+            "deliveryMethod": "post",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": true,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000608",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 40000,
+          "promotionDiscountCents": 12200,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 27800
+        }
+      }
+    },
+    {
+      "name": "discount before free-delivery threshold",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 3
+          }
+        ],
+        "deliveryMethod": "standart"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 10,
+            "totalPrice": 185.67,
+            "promoCodeId": null,
+            "discountAmount": 94.72,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 3,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "standart",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 3
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 27039,
+          "promotionDiscountCents": 9472,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 18567
+        }
+      }
+    },
+    {
+      "name": "invalid method",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "deliveryMethod": "unknown"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Invalid delivery method"
+      }
+    },
+    {
+      "name": "trim and cap promo code applied after promotions",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 4
+          }
+        ],
+        "promoCode": " PERCENT "
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 218.31,
+            "promoCodeId": "00000000-0000-4000-8000-000000000717",
+            "discountAmount": 142.21,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 4,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 4
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": " PERCENT ",
+          "promoCodeError": null,
+          "subtotalCents": 36052,
+          "promotionDiscountCents": 12221,
+          "promoCodeDiscountCents": 2000,
+          "totalCents": 21831
+        }
+      }
+    },
+    {
+      "name": "minimum amount for promo code",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000602",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "PERCENT"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 8.53,
+            "promoCodeId": null,
+            "discountAmount": 21.37,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000602",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 25.0,
+                  "costPrice": 19.3,
+                  "price": 29.9,
+                  "isDefault": false,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 29.9,
+                "historicalCostPrice": 19.3
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000602",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "PERCENT",
+          "promoCodeError": "Минимальная сумма заказа: 39.99",
+          "subtotalCents": 2990,
+          "promotionDiscountCents": 2137,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 853
+        }
+      }
+    },
+    {
+      "name": "percentage promo code below cap",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "PERCENT"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 43.99,
+            "promoCodeId": "00000000-0000-4000-8000-000000000717",
+            "discountAmount": 46.14,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "PERCENT",
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 640,
+          "totalCents": 4399
+        }
+      }
+    },
+    {
+      "name": "promo code case sensitive",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "fixture-only"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "fixture-only",
+          "promoCodeError": "Промокод недоступен",
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "expired promo code",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "FIXTURE-EXPIRED"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "FIXTURE-EXPIRED",
+          "promoCodeError": "Промокод недоступен",
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "disabled promo code",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "FIXTURE-DISABLED"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "FIXTURE-DISABLED",
+          "promoCodeError": "Промокод недоступен",
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "exhausted promo code",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "EXHAUSTED"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "EXHAUSTED",
+          "promoCodeError": "Промокод исчерпан",
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "small total with fixed code and delivery",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "FIXED-OVER",
+        "deliveryMethod": "standart"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 10,
+            "totalPrice": 10.0,
+            "promoCodeId": "00000000-0000-4000-8000-000000000716",
+            "discountAmount": 90.13,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "standart",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "FIXED-OVER",
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 5039,
+          "totalCents": 1000
+        }
+      }
+    },
+    {
+      "name": "blank promo code",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1
+          }
+        ],
+        "promoCode": "  "
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": "  ",
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "length limit for code",
+      "body": {
+        "items": [],
+        "promoCode": "яяяяяяяяяяяяяяяяяяяяяяяяяя"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "body": "Некорректный промокод"
+      }
+    },
+    {
+      "name": "prices supplied by client ignored",
+      "body": {
+        "items": [
+          {
+            "variantId": "00000000-0000-4000-8000-000000000601",
+            "quantity": 1,
+            "price": 1
+          }
+        ],
+        "totalCents": 1,
+        "subtotalCents": 1
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 200,
+        "contentType": "application/json",
+        "cacheControl": "no-store",
+        "json": {
+          "order": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "orderId": null,
+            "personId": "00000000-0000-0000-0000-000000000000",
+            "status": "NotChecked",
+            "paymentStatus": "Pending",
+            "paymentId": null,
+            "paymentFormUrl": null,
+            "deliveryCost": 0,
+            "totalPrice": 50.39,
+            "promoCodeId": null,
+            "discountAmount": 39.74,
+            "products": [
+              {
+                "product": {
+                  "id": "00000000-0000-4000-8000-000000000501"
+                },
+                "variant": {
+                  "id": "00000000-0000-4000-8000-000000000601",
+                  "productId": "00000000-0000-4000-8000-000000000501",
+                  "volume": 100.0,
+                  "costPrice": 60.05,
+                  "price": 90.13,
+                  "isDefault": true,
+                  "isDeleted": false,
+                  "createdAt": "2025-01-02T03:04:05Z",
+                  "updatedAt": null
+                },
+                "quantity": 1,
+                "historicalPrice": 90.13,
+                "historicalCostPrice": 60.05
+              }
+            ],
+            "deliveryMethod": "pickup",
+            "deliveryDate": null,
+            "deliveryAddress": null,
+            "deliveryPostAddress": null,
+            "isCourierDelivery": false,
+            "paymentMethod": null,
+            "comment": null,
+            "contactSnapshot": null,
+            "cartRevision": 0,
+            "isDeleted": null,
+            "createdAt": null,
+            "updatedAt": null
+          },
+          "items": [
+            {
+              "variantId": "00000000-0000-4000-8000-000000000601",
+              "quantity": 1
+            }
+          ],
+          "unavailableItems": [],
+          "promoCode": null,
+          "promoCodeError": null,
+          "subtotalCents": 9013,
+          "promotionDiscountCents": 3974,
+          "promoCodeDiscountCents": 0,
+          "totalCents": 5039
+        }
+      }
+    },
+    {
+      "name": "missing field items",
+      "body": {
+        "promoCode": "FIXTURE-ONLY"
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "contentType": "text/plain; charset=utf-8"
+      }
+    },
+    {
+      "name": "null courier flag",
+      "body": {
+        "items": [],
+        "isCourierDelivery": null
+      },
+      "enabled": true,
+      "fullProduct": false,
+      "expected": {
+        "status": 400,
+        "contentType": "text/plain; charset=utf-8"
+      }
+    }
+  ]
+}

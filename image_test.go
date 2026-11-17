@@ -71,7 +71,7 @@ func TestPublicImages(t *testing.T) {
 				t.Fatal(err)
 			}
 			response := httptest.NewRecorder()
-			newHandler(nil, images, nil).ServeHTTP(response, httptest.NewRequest(http.MethodGet, tc.path, nil))
+			newHandler(nil, images, nil, false).ServeHTTP(response, httptest.NewRequest(http.MethodGet, tc.path, nil))
 			if response.Code != tc.status {
 				t.Fatalf("status = %d, want %d (body %q)", response.Code, tc.status, response.Body.Bytes())
 			}
