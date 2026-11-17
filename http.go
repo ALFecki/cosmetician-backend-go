@@ -40,14 +40,20 @@ func newHandler(db database) http.Handler {
 	})
 	registerCatalog(mux, db, "/api/brand", brands)
 	registerCatalog(mux, db, "/api/category", categories)
+	registerProductRoutes(mux, db)
 	return storefrontCORS(mux)
 }
 
 func registerCatalog(mux *http.ServeMux, db database, path string, resource catalogResource) {
 	mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
-		filter, err := parseListFilter(r.URL.RawQuery)
+		values, err := parseListQuery(r.URL.RawQuery, "title", "description")
 		if err != nil {
-			writeText(w, http.StatusBadRequest, "Query deserialize error: "+err.Error())
+			writeQueryError(w, err)
+			return
+		}
+		filter, err := parseListFilter(values)
+		if err != nil {
+			writeQueryError(w, err)
 			return
 		}
 		entries, err := listCatalog(r.Context(), db, resource, filter)
@@ -55,20 +61,11 @@ func registerCatalog(mux *http.ServeMux, db database, path string, resource cata
 			databaseFailure(w, "list "+path, err)
 			return
 		}
-		result := listResponse[any]{Status: "success", Length: len(entries), Data: entries}
-		if filter.limit != nil {
-			page, limit := int64(filter.page), int64(*filter.limit)
-			start := min(int64(len(entries)), (page-1)*limit)
-			end := min(int64(len(entries)), start+limit)
-			result.Data = entries[start:end]
-			result.Page, result.Limit = &filter.page, filter.limit
-		}
-		writeJSON(w, result)
+		writeJSON(w, paginated(entries, filter))
 	})
 	mux.HandleFunc("GET "+path+"/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id, err := parseID(r.PathValue("id"))
-		if err != nil {
-			writeText(w, http.StatusNotFound, "UUID parsing failed: "+err.Error())
+		id, ok := requestID(w, r)
+		if !ok {
 			return
 		}
 		entry, err := resource.scan(db.QueryRow(r.Context(), resource.fromSQL+" WHERE id = $1", id))
@@ -90,20 +87,24 @@ type listFilter struct {
 	limit              *int32
 }
 
-func parseListFilter(raw string) (listFilter, error) {
-	filter := listFilter{page: 1}
+func parseListQuery(raw string, fields ...string) (url.Values, error) {
 	values, err := url.ParseQuery(raw)
 	if err != nil {
-		return filter, errors.New("invalid query parameters")
+		return nil, errors.New("invalid query parameters")
 	}
-	for _, key := range []string{"id", "title", "description", "includeDeleted", "page", "limit"} {
+	for _, key := range append(fields, "id", "includeDeleted", "page", "limit") {
 		if len(values[key]) > 1 {
-			return filter, fmt.Errorf("duplicate field `%s`", key)
+			return nil, fmt.Errorf("duplicate field `%s`", key)
 		}
 	}
 	if values.Has("id") {
-		return filter, fmt.Errorf("invalid type: string %q, expected a sequence", values.Get("id"))
+		return nil, fmt.Errorf("invalid type: string %q, expected a sequence", values.Get("id"))
 	}
+	return values, nil
+}
+
+func parseListFilter(values url.Values) (listFilter, error) {
+	filter := listFilter{page: 1}
 	if values.Has("title") {
 		value := strings.ToLower(values.Get("title"))
 		filter.title = &value
@@ -192,7 +193,12 @@ func parseID(value string) (pgtype.UUID, error) {
 }
 
 func writeJSON(w http.ResponseWriter, data any) {
+	writeJSONStatus(w, http.StatusOK, data)
+}
+
+func writeJSONStatus(w http.ResponseWriter, code int, data any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		slog.Warn("write HTTP response", "error", err)
 	}
@@ -207,4 +213,29 @@ func writeText(w http.ResponseWriter, code int, message string) {
 func databaseFailure(w http.ResponseWriter, operation string, err error) {
 	slog.Error("catalog query failed", "operation", operation, "error", err)
 	writeText(w, http.StatusInternalServerError, "Не удалось загрузить данные каталога")
+}
+
+func paginated[T any](entries []T, filter listFilter) listResponse[T] {
+	result := listResponse[T]{Status: "success", Length: len(entries), Data: entries}
+	if filter.limit != nil {
+		page, limit := int64(filter.page), int64(*filter.limit)
+		start := min(int64(len(entries)), (page-1)*limit)
+		end := min(int64(len(entries)), start+limit)
+		result.Data = entries[start:end]
+		result.Page, result.Limit = &filter.page, filter.limit
+	}
+	return result
+}
+
+func requestID(w http.ResponseWriter, r *http.Request) (pgtype.UUID, bool) {
+	id, err := parseID(r.PathValue("id"))
+	if err != nil {
+		writeText(w, http.StatusNotFound, "UUID parsing failed: "+err.Error())
+		return id, false
+	}
+	return id, true
+}
+
+func writeQueryError(w http.ResponseWriter, err error) {
+	writeText(w, http.StatusBadRequest, "Query deserialize error: "+err.Error())
 }

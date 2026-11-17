@@ -17,6 +17,15 @@ import (
 )
 
 func TestCatalogContract(t *testing.T) {
+	runCatalogContract(t, "catalog", "catalog_schema.sql", "catalog_rows.sql")
+}
+
+func TestProductContract(t *testing.T) {
+	runCatalogContract(t, "product", "catalog_schema.sql", "catalog_rows.sql", "product_schema.sql", "product_rows.sql")
+}
+
+func runCatalogContract(t *testing.T, name string, schemaAndRows ...string) {
+	t.Helper()
 	dsn := os.Getenv("SKVIDERM_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("set SKVIDERM_TEST_DATABASE_URL to run the PostgreSQL contract tests")
@@ -34,8 +43,8 @@ func TestCatalogContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback(context.Background())
-	for _, file := range []string{"testdata/catalog_schema.sql", "testdata/catalog_rows.sql"} {
-		sql, err := os.ReadFile(file)
+	for _, file := range schemaAndRows {
+		sql, err := os.ReadFile("testdata/" + file)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -44,7 +53,7 @@ func TestCatalogContract(t *testing.T) {
 		}
 	}
 
-	fixture, err := os.ReadFile("testdata/catalog_contract.json")
+	fixture, err := os.ReadFile("testdata/" + name + "_contract.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +63,7 @@ func TestCatalogContract(t *testing.T) {
 			Name, Path, ContentType, CacheControl, Body                             string
 			Method, AllowOrigin, AllowCredentials, AllowMethods, AllowHeaders, Vary string
 			RequestHeaders                                                          map[string]string
-			Unordered, HideBanners                                                  bool
+			Unordered, HideBanners, IDsOnly                                         bool
 			Status                                                                  int
 			JSON                                                                    json.RawMessage
 		}
@@ -112,8 +121,8 @@ func TestCatalogContract(t *testing.T) {
 				}
 				return
 			}
-			got := decodeContract(t, response.Body.Bytes(), tc.Unordered)
-			want := decodeContract(t, tc.JSON, tc.Unordered)
+			got := decodeContract(t, response.Body.Bytes(), tc.Unordered, tc.IDsOnly)
+			want := decodeContract(t, tc.JSON, tc.Unordered, tc.IDsOnly)
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("body = %s\nwant = %s", response.Body, tc.JSON)
 			}
@@ -121,18 +130,29 @@ func TestCatalogContract(t *testing.T) {
 	}
 }
 
-func decodeContract(t *testing.T, data []byte, unordered bool) map[string]any {
+func decodeContract(t *testing.T, data []byte, unordered, idsOnly bool) map[string]any {
 	t.Helper()
 	var result map[string]any
 	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatal(err)
 	}
-	if unordered {
-		items := result["data"].([]any)
-		slices.SortFunc(items, func(a, b any) int {
-			return strings.Compare(a.(map[string]any)["id"].(string), b.(map[string]any)["id"].(string))
-		})
+	if unordered || idsOnly {
+		items, ok := result["data"].([]any)
+		if !ok {
+			t.Fatalf("expected an array in data: %s", data)
+		}
+		if idsOnly {
+			for index, item := range items {
+				items[index] = map[string]any{"id": item.(map[string]any)["id"]}
+			}
+		}
+		if unordered {
+			slices.SortFunc(items, func(a, b any) int {
+				return strings.Compare(a.(map[string]any)["id"].(string), b.(map[string]any)["id"].(string))
+			})
+		}
 	}
+	sortPromotionProductIDs(result)
 	return result
 }
 
@@ -143,4 +163,23 @@ func headerTokens(value string) []string {
 	}
 	sort.Strings(tokens)
 	return tokens
+}
+
+func sortPromotionProductIDs(value any) {
+	switch value := value.(type) {
+	case map[string]any:
+		for key, field := range value {
+			if ids, ok := field.([]any); key == "productIds" && ok {
+				slices.SortFunc(ids, func(a, b any) int {
+					return strings.Compare(a.(string), b.(string))
+				})
+			} else {
+				sortPromotionProductIDs(field)
+			}
+		}
+	case []any:
+		for _, item := range value {
+			sortPromotionProductIDs(item)
+		}
+	}
 }

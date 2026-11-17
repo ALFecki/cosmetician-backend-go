@@ -1,7 +1,5 @@
 **
 !go.mod
 !go.sum
-!main.go
-!catalog.go
-!cors.go
-!http.go
+!*.go
+*_test.go
