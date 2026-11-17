@@ -1,0 +1,809 @@
+{
+  "rustCommit": "b9ab1eb723cd1f7792804a694b0d25e547ea8ed4",
+  "cases": [
+    {
+      "name": "public list",
+      "path": "/api/brand",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "include archived",
+      "path": "/api/brand?includeDeleted=true",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000103",
+            "title": "Архивный уход",
+            "description": "Описание архивной марки",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "case insensitive title",
+      "path": "/api/brand?title=%D0%9A%D0%98%D0%99+%D0%A3%D0%A5%D0%9E%D0%94",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "description",
+      "path": "/api/brand?description=%D0%BA%D1%80%D0%B5%D0%BC%D0%B0",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "first page with total",
+      "path": "/api/brand?limit=1",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": 1,
+        "limit": 1
+      }
+    },
+    {
+      "name": "second page",
+      "path": "/api/brand?limit=1&page=2",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": 2,
+        "limit": 1
+      }
+    },
+    {
+      "name": "page without limit",
+      "path": "/api/brand?page=2",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "empty search result",
+      "path": "/api/brand?title=%D0%BD%D0%B5%D1%81%D1%83%D1%89%D0%B5%D1%81%D1%82%D0%B2%D1%83%D1%8E%D1%89%D0%B5%D0%B5",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "invalid page",
+      "path": "/api/brand?page=abc",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: invalid digit found in string"
+    },
+    {
+      "name": "invalid archived flag",
+      "path": "/api/brand?includeDeleted=1",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: provided string was not `true` or `false`"
+    },
+    {
+      "name": "record details",
+      "path": "/api/brand/00000000-0000-4000-8000-000000000101",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "title": "Тёплый уход",
+          "description": "Описание крема",
+          "image": "/images/brand.png",
+          "manufacturer": "Производитель",
+          "importer": "Импортёр",
+          "isDeleted": false,
+          "createdAt": "2025-01-02T03:04:05.123Z",
+          "updatedAt": "2025-03-04T05:06:07.123456Z"
+        }
+      }
+    },
+    {
+      "name": "archived record details",
+      "path": "/api/brand/00000000-0000-4000-8000-000000000103",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000103",
+          "title": "Архивный уход",
+          "description": "Описание архивной марки",
+          "image": null,
+          "manufacturer": null,
+          "importer": null,
+          "isDeleted": true,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "missing record",
+      "path": "/api/brand/00000000-0000-4000-8000-000000000999",
+      "unordered": false,
+      "status": 404,
+      "allowCredentials": "true"
+    },
+    {
+      "name": "malformed identifier",
+      "path": "/api/brand/invalid",
+      "unordered": false,
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "UUID parsing failed: invalid character: found `i` at 0"
+    },
+    {
+      "name": "scalar id query",
+      "path": "/api/brand?id=00000000-0000-4000-8000-000000000101",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: invalid type: string \"00000000-0000-4000-8000-000000000101\", expected a sequence"
+    },
+    {
+      "name": "public list",
+      "path": "/api/category",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Очищение",
+            "description": "Мягкое очищение",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000202",
+            "title": "Увлажнение",
+            "description": "Ежедневный уход",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "include archived",
+      "path": "/api/category?includeDeleted=true",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Очищение",
+            "description": "Мягкое очищение",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000202",
+            "title": "Увлажнение",
+            "description": "Ежедневный уход",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000203",
+            "title": "Архив",
+            "description": "Недоступная категория",
+            "isDeleted": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "case insensitive title",
+      "path": "/api/category?title=%D0%92%D0%9B%D0%90%D0%96%D0%9D%D0%95%D0%9D%D0%98%D0%95",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000202",
+            "title": "Увлажнение",
+            "description": "Ежедневный уход",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "description",
+      "path": "/api/category?description=%D0%BC%D1%8F%D0%B3%D0%BA%D0%BE%D0%B5",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 1,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Очищение",
+            "description": "Мягкое очищение",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "first page with total",
+      "path": "/api/category?limit=1",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Очищение",
+            "description": "Мягкое очищение",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": 1,
+        "limit": 1
+      }
+    },
+    {
+      "name": "second page",
+      "path": "/api/category?limit=1&page=2",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000202",
+            "title": "Увлажнение",
+            "description": "Ежедневный уход",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": 2,
+        "limit": 1
+      }
+    },
+    {
+      "name": "page without limit",
+      "path": "/api/category?page=2",
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Очищение",
+            "description": "Мягкое очищение",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000202",
+            "title": "Увлажнение",
+            "description": "Ежедневный уход",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "empty search result",
+      "path": "/api/category?title=%D0%BD%D0%B5%D1%81%D1%83%D1%89%D0%B5%D1%81%D1%82%D0%B2%D1%83%D1%8E%D1%89%D0%B5%D0%B5",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "invalid page",
+      "path": "/api/category?page=abc",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: invalid digit found in string"
+    },
+    {
+      "name": "invalid archived flag",
+      "path": "/api/category?includeDeleted=1",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: provided string was not `true` or `false`"
+    },
+    {
+      "name": "record details",
+      "path": "/api/category/00000000-0000-4000-8000-000000000201",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000201",
+          "title": "Очищение",
+          "description": "Мягкое очищение",
+          "isDeleted": false,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "archived record details",
+      "path": "/api/category/00000000-0000-4000-8000-000000000203",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "data": {
+          "id": "00000000-0000-4000-8000-000000000203",
+          "title": "Архив",
+          "description": "Недоступная категория",
+          "isDeleted": true,
+          "createdAt": "2025-01-02T03:04:05Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "name": "missing record",
+      "path": "/api/category/00000000-0000-4000-8000-000000000999",
+      "unordered": false,
+      "status": 404,
+      "allowCredentials": "true"
+    },
+    {
+      "name": "malformed identifier",
+      "path": "/api/category/invalid",
+      "unordered": false,
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "UUID parsing failed: invalid character: found `i` at 0"
+    },
+    {
+      "name": "scalar id query",
+      "path": "/api/category?id=00000000-0000-4000-8000-000000000201",
+      "unordered": false,
+      "status": 400,
+      "contentType": "text/plain; charset=utf-8",
+      "allowCredentials": "true",
+      "body": "Query deserialize error: invalid type: string \"00000000-0000-4000-8000-000000000201\", expected a sequence"
+    },
+    {
+      "name": "only active banners sorted by priority and UUID",
+      "path": "/api/banner",
+      "unordered": false,
+      "status": 200,
+      "contentType": "application/json",
+      "cacheControl": "no-store",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 3,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000304",
+            "title": "Первый слайд",
+            "subtitle": "Описание первого слайда",
+            "image": "assets/banner1.png",
+            "buttonText": "В каталог",
+            "buttonLink": "/products",
+            "sortOrder": 5,
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05.123Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "title": "Второй слайд",
+            "subtitle": "",
+            "image": "/images/banner2.png",
+            "buttonText": "",
+            "buttonLink": "",
+            "sortOrder": 10,
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000302",
+            "title": "Равный порядок",
+            "subtitle": "",
+            "image": "/images/banner3.png",
+            "buttonText": "",
+            "buttonLink": "",
+            "sortOrder": 10,
+            "isActive": true,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": "2025-01-02T03:04:05Z"
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "local Angular origin",
+      "path": "/api/brand",
+      "method": "GET",
+      "requestHeaders": {
+        "Origin": "http://localhost:4200"
+      },
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowOrigin": "http://localhost:4200",
+      "allowCredentials": "true",
+      "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "local Angular preflight",
+      "path": "/api/brand",
+      "method": "OPTIONS",
+      "requestHeaders": {
+        "Origin": "http://localhost:4200",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "authorization,x-guest-csrf"
+      },
+      "unordered": false,
+      "status": 200,
+      "allowOrigin": "http://localhost:4200",
+      "allowCredentials": "true",
+      "allowMethods": "GET, PATCH, OPTIONS, DELETE, PUT, POST",
+      "allowHeaders": "content-type, x-csrf-token, accept, x-guest-csrf, authorization, x-phone-csrf",
+      "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+    },
+    {
+      "name": "unapproved origin",
+      "path": "/api/brand",
+      "method": "GET",
+      "requestHeaders": {
+        "Origin": "https://example.invalid"
+      },
+      "unordered": true,
+      "status": 200,
+      "contentType": "application/json",
+      "allowCredentials": "true",
+      "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+      "json": {
+        "status": "success",
+        "length": 2,
+        "data": [
+          {
+            "id": "00000000-0000-4000-8000-000000000101",
+            "title": "Тёплый уход",
+            "description": "Описание крема",
+            "image": "/images/brand.png",
+            "manufacturer": "Производитель",
+            "importer": "Импортёр",
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05.123Z",
+            "updatedAt": "2025-03-04T05:06:07.123456Z"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000102",
+            "title": "Зимний уход",
+            "description": "Средства для рук",
+            "image": null,
+            "manufacturer": null,
+            "importer": null,
+            "isDeleted": false,
+            "createdAt": "2025-01-02T03:04:05Z",
+            "updatedAt": null
+          }
+        ],
+        "page": null,
+        "limit": null
+      }
+    },
+    {
+      "name": "unapproved preflight",
+      "path": "/api/brand",
+      "method": "OPTIONS",
+      "requestHeaders": {
+        "Origin": "https://example.invalid",
+        "Access-Control-Request-Method": "GET"
+      },
+      "unordered": false,
+      "status": 400,
+      "body": "Origin is not allowed to make this request"
+    },
+    {
+      "name": "no active banners",
+      "path": "/api/banner",
+      "hideBanners": true,
+      "status": 200,
+      "contentType": "application/json",
+      "cacheControl": "no-store",
+      "allowCredentials": "true",
+      "json": {
+        "status": "success",
+        "length": 0,
+        "data": [],
+        "page": null,
+        "limit": null
+      }
+    }
+  ]
+}

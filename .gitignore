@@ -1,0 +1,4 @@
+.env
+.env.*
+/cosmetician-backend-go
+/*.test
