@@ -47,11 +47,7 @@ func (auth *accountAuth) orderList(minimal bool) http.HandlerFunc {
 			return
 		}
 
-		fields := make([]string, 0, len(orderFilterFields))
-		for _, field := range orderFilterFields {
-			fields = append(fields, field.query)
-		}
-		values, err := parseListQuery(r.URL.RawQuery, true, fields...)
+		values, err := parseOrderListQuery(r.URL.RawQuery)
 		if err != nil {
 			writeQueryError(w, err)
 			return
@@ -171,47 +167,63 @@ func orderWhere(values url.Values, includeDeleted bool) (string, []any, error) {
 		if !values.Has(field.query) {
 			continue
 		}
-		value := values.Get(field.query)
-		var argument any
-		var err error
-		operator := "="
-		switch field.query {
-		case "personId":
-			argument, err = parseID(value)
-		case "orderId", "paymentId":
-			argument = value
-		case "status":
-			argument, err = orderStatusPattern(value, "NotChecked", "Checked", "Processing", "InDelivery", "Delivered", "Completed", "Cancelled")
-			operator = "ILIKE"
-		case "paymentStatus":
-			argument, err = orderStatusPattern(value, "Pending", "Processing", "Completed", "Failed")
-			operator = "ILIKE"
-		case "totalPrice":
-			number, parseErr := queryFloat(values, field.query)
-			if parseErr == nil && number == nil {
-				continue
-			}
-			argument, err = number, parseErr
-		case "deliveryCost":
-			argument, err = parseQueryInt(value)
-		case "isCourierDelivery":
-			argument, err = parseQueryBool(value)
-		case "deliveryDate":
-			var date string
-			date, err = normalizeCatalogDate(value)
-			argument = "%" + strings.ToLower(date) + "%"
-			operator = "ILIKE"
-		default:
-			argument = "%" + strings.ToLower(value) + "%"
-			operator = "ILIKE"
-		}
+		argument, operator, err := orderFilterArgument(values, field.query)
 		if err != nil {
 			return "", nil, err
+		}
+		if argument == nil {
+			continue
 		}
 		args = append(args, argument)
 		clauses = append(clauses, fmt.Sprintf("%s %s $%d", field.column, operator, len(args)))
 	}
 	return " WHERE " + strings.Join(clauses, " AND "), args, nil
+}
+
+func parseOrderListQuery(raw string) (url.Values, error) {
+	fields := make([]string, 0, len(orderFilterFields))
+	for _, field := range orderFilterFields {
+		fields = append(fields, field.query)
+	}
+	return parseListQuery(raw, true, fields...)
+}
+
+func orderFilterArgument(values url.Values, key string) (any, string, error) {
+	value := values.Get(key)
+	var argument any
+	var err error
+	operator := "="
+	switch key {
+	case "personId":
+		argument, err = parseID(value)
+	case "orderId", "paymentId":
+		argument = value
+	case "status":
+		argument, err = orderStatusPattern(value, "NotChecked", "Checked", "Processing", "InDelivery", "Delivered", "Completed", "Cancelled")
+		operator = "ILIKE"
+	case "paymentStatus":
+		argument, err = orderStatusPattern(value, "Pending", "Processing", "Completed", "Failed")
+		operator = "ILIKE"
+	case "totalPrice":
+		number, parseErr := queryFloat(values, key)
+		if number != nil {
+			argument = *number
+		}
+		err = parseErr
+	case "deliveryCost":
+		argument, err = parseQueryInt(value)
+	case "isCourierDelivery":
+		argument, err = parseQueryBool(value)
+	case "deliveryDate":
+		var date string
+		date, err = normalizeCatalogDate(value)
+		argument = "%" + strings.ToLower(date) + "%"
+		operator = "ILIKE"
+	default:
+		argument = "%" + strings.ToLower(value) + "%"
+		operator = "ILIKE"
+	}
+	return argument, operator, err
 }
 
 func orderStatusPattern(value string, allowed ...string) (string, error) {

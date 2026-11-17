@@ -21,6 +21,7 @@ type accountAuth struct {
 	cartDB        cartDatabase
 	key           []byte
 	secureCookies bool
+	guestOrigin   string
 }
 
 type account struct {
