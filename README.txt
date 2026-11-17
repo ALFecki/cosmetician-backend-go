@@ -66,12 +66,28 @@ the snapshot in one transaction. A retry uses the same snapshot. Redis
 keys are retained. Go returns 503 if an active legacy cart still needs
 reconciliation.
 
+Order confirmation
+------------------
+Enable ORDER_CONFIRMATION_ENABLED with CART_STORAGE_ENABLED to serve
+POST /api/checkout. For guest checkout, set GUEST_CHECKOUT_ENABLED=true
+with CLIENT_URL and REDIS_URL pointing to the same Redis database used
+by Rust for guest admission counters. Set SMS_TRUSTED_PROXY_IP to the
+same trusted proxy IP if it supplies X-Real-IP. Account checkout follows
+the same verified-phone requirement as Rust when guest checkout is off.
+
+Keep the Rust payment routes and background jobs active to process bank
+payments and send pending order notifications. Go saves confirmed orders
+with the existing checkout key, notification and payment state.
+
 Contract tests
 --------------
 Start a disposable PostgreSQL 17 instance. Set SKVIDERM_TEST_DATABASE_URL
 to point to it, then run:
 
     go test -count=1 -v ./...
+
+Set SKVIDERM_TEST_REDIS_URL to an isolated Redis instance to also run
+the guest admission counter tests.
 
 The suite uses temporary tables and synthetic data. It compares the Go
 HTTP handlers with responses observed from the Rust version pinned in

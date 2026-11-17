@@ -19,6 +19,7 @@ import (
 type accountAuth struct {
 	db            database
 	cartDB        cartDatabase
+	confirmation  *checkoutConfirmation
 	key           []byte
 	secureCookies bool
 	guestOrigin   string

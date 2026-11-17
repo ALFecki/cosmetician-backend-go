@@ -55,6 +55,9 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 		accounts.registerCheckoutReads(mux)
 		if checkoutEnabled && accounts.cartDB != nil {
 			accounts.registerCartRoutes(mux)
+			if accounts.confirmation != nil {
+				accounts.registerCheckoutConfirmation(mux)
+			}
 		}
 	}
 	if images != nil {
