@@ -23,7 +23,8 @@ Set JWT_SECRET to enable POST /api/login, GET /api/check_auth and the
 protected GET /api/person and GET /api/person/{id} routes. For compatible
 sessions between Rust and Go, configure the same signing secret on both
 services. Cookies are secure by default. Set SECURE_MODE=false for local
-HTTP.
+HTTP. The GET /api/order and /api/order_minimal lists and details use the
+same authenticated session and CSRF header.
 
 Set PHONE_CHECKOUT_ENABLED=true to enable POST /api/checkout/cart/quote.
 The route recalculates prices and availability from the catalog and does

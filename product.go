@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"slices"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -180,4 +181,36 @@ func loadProductRelations(ctx context.Context, db database, entries []product) e
 		entry.PromoCodes = append(entry.PromoCodes, row.promoCode)
 	}
 	return nil
+}
+
+func productsForDetails(ctx context.Context, db database, ids []pgtype.UUID, promos []promotion, includeDeleted bool) (map[pgtype.UUID]product, error) {
+	query := productSelect + " WHERE p.id = ANY($1)"
+	if !includeDeleted {
+		query += " AND p.is_deleted IS NOT TRUE"
+	}
+	rows, err := db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := pgx.CollectRows(rows, scanProduct)
+	if err != nil {
+		return nil, err
+	}
+	if err := loadProductRelations(ctx, db, entries); err != nil {
+		return nil, err
+	}
+	productsByID := make(map[pgtype.UUID]product, len(entries))
+	for _, p := range entries {
+		for _, promo := range promos {
+			switch {
+			case promo.TargetType == "all":
+				p.Promotions = append(p.Promotions, promo)
+			case slices.Contains(promo.ProductIDs, p.ID):
+				promo.ProductIDs = []pgtype.UUID{p.ID}
+				p.Promotions = append(p.Promotions, promo)
+			}
+		}
+		productsByID[p.ID] = p
+	}
+	return productsByID, nil
 }

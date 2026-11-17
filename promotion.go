@@ -63,6 +63,11 @@ const promotionSelect = "SELECT " + promotionColumns + `,
     FROM promotion promo LEFT JOIN product_promotion link ON link.promotion_id = promo.id
 `
 
+func activePromotions(ctx context.Context, db database) ([]promotion, error) {
+	return queryStructs[promotion](ctx, db, promotionSelect+
+		" WHERE "+activePromotion+" GROUP BY promo.id ORDER BY promo.priority DESC")
+}
+
 func productPromotions(ctx context.Context, db database, id pgtype.UUID) ([]promotion, error) {
 	return queryStructs[promotion](ctx, db, promotionSelect+
 		" WHERE (promo.target_type = 'all' OR link.product_id = $1) AND "+activePromotion+

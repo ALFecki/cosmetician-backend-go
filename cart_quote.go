@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"log/slog"
@@ -14,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -28,41 +26,6 @@ type quoteRequest struct {
 	PromoCode         *string    `json:"promoCode"`
 	DeliveryMethod    *string    `json:"deliveryMethod"`
 	IsCourierDelivery *bool      `json:"isCourierDelivery"`
-}
-
-type orderProduct struct {
-	Product             product `json:"product"`
-	Variant             variant `json:"variant"`
-	Quantity            int32   `json:"quantity"`
-	HistoricalPrice     float32 `json:"historicalPrice"`
-	HistoricalCostPrice float32 `json:"historicalCostPrice"`
-}
-
-type order struct {
-	ID                  uuid.UUID       `json:"id"`
-	OrderID             *string         `json:"orderId"`
-	PersonID            uuid.UUID       `json:"personId"`
-	Status              string          `json:"status"`
-	PaymentStatus       string          `json:"paymentStatus"`
-	PaymentID           *string         `json:"paymentId"`
-	PaymentFormURL      *string         `json:"paymentFormUrl"`
-	DeliveryCost        int32           `json:"deliveryCost"`
-	TotalPrice          float32         `json:"totalPrice"`
-	PromoCodeID         *pgtype.UUID    `json:"promoCodeId"`
-	DiscountAmount      *float32        `json:"discountAmount"`
-	Products            []orderProduct  `json:"products"`
-	DeliveryMethod      *string         `json:"deliveryMethod"`
-	DeliveryDate        apiTime         `json:"deliveryDate"`
-	DeliveryAddress     *string         `json:"deliveryAddress"`
-	DeliveryPostAddress *string         `json:"deliveryPostAddress"`
-	IsCourierDelivery   *bool           `json:"isCourierDelivery"`
-	PaymentMethod       *string         `json:"paymentMethod"`
-	Comment             *string         `json:"comment"`
-	ContactSnapshot     json.RawMessage `json:"contactSnapshot"`
-	CartRevision        int64           `json:"cartRevision"`
-	IsDeleted           *bool           `json:"isDeleted"`
-	CreatedAt           apiTime         `json:"createdAt"`
-	UpdatedAt           apiTime         `json:"updatedAt"`
 }
 
 type cartQuote struct {
@@ -158,8 +121,7 @@ func quoteCart(ctx context.Context, db database, input quoteRequest) (cartQuote,
 	if err != nil {
 		return cartQuote{}, err
 	}
-	promos, err := queryStructs[promotion](ctx, db, promotionSelect+
-		" WHERE "+activePromotion+" GROUP BY promo.id ORDER BY promo.priority DESC")
+	promos, err := activePromotions(ctx, db)
 	if err != nil {
 		return cartQuote{}, err
 	}
@@ -184,7 +146,8 @@ func quoteCart(ctx context.Context, db database, input quoteRequest) (cartQuote,
 		Items: items, UnavailableItems: unavailable, PromoCode: input.PromoCode,
 		SubtotalCents: subtotal, PromotionDiscountCents: promoDiscount,
 		Order: order{
-			Status: "NotChecked", PaymentStatus: "Pending", Products: products,
+			orderSummary:      orderSummary{Status: "NotChecked", PaymentStatus: "Pending"},
+			Products:          products,
 			IsCourierDelivery: input.IsCourierDelivery,
 		},
 	}
@@ -230,29 +193,9 @@ func loadQuoteProducts(ctx context.Context, db database, items []cartItem, promo
 		productIDs = append(productIDs, v.ProductID)
 	}
 
-	rows, err := db.Query(ctx, productSelect+" WHERE p.id = ANY($1) AND p.is_deleted IS NOT TRUE", productIDs)
+	productsByID, err := productsForDetails(ctx, db, productIDs, promos, false)
 	if err != nil {
 		return nil, nil, err
-	}
-	entries, err := pgx.CollectRows(rows, scanProduct)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := loadProductRelations(ctx, db, entries); err != nil {
-		return nil, nil, err
-	}
-	productsByID := make(map[pgtype.UUID]product, len(entries))
-	for _, p := range entries {
-		for _, promo := range promos {
-			switch {
-			case promo.TargetType == "all":
-				p.Promotions = append(p.Promotions, promo)
-			case slices.Contains(promo.ProductIDs, p.ID):
-				promo.ProductIDs = []pgtype.UUID{p.ID}
-				p.Promotions = append(p.Promotions, promo)
-			}
-		}
-		productsByID[p.ID] = p
 	}
 
 	for _, item := range items {

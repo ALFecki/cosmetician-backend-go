@@ -51,6 +51,7 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 		mux.HandleFunc("GET /api/check_auth", accounts.check)
 		mux.HandleFunc("GET /api/person", accounts.listProfiles)
 		mux.HandleFunc("GET /api/person/{id}", accounts.profile)
+		accounts.registerOrderReads(mux)
 		if checkoutEnabled && accounts.cartDB != nil {
 			accounts.registerCartRoutes(mux)
 		}
