@@ -121,6 +121,30 @@ public banner feed uses the same table and keeps its active-only filter.
 The image upload route stays on Rust and both services can use the
 existing image paths.
 
+Promotion management and pricing
+--------------------------------
+Apply migrations/0002_promotion_draft.sql, then enable
+PROMOTION_MANAGEMENT_ENABLED with JWT_SECRET and ORDER_CONFIRMATION_ENABLED
+(which requires the Go cart storage and checkout quote). The same flag
+enables the moderator API and the new cart pricing policy. Give the Go role SELECT,
+INSERT, UPDATE and DELETE on promotion and product_promotion. Product
+search and price previews use the existing catalog.
+
+Switch /api/admin/promotion, /api/promotion reads, the product and variant
+reads, and the cart quote/storage and checkout confirmation routes to Go
+together. Keep the Go promotion reads routed while drafts exist, including
+during a rollback of other routes. Rust's legacy promotion list includes
+inactive rows and does not know about the draft flag. The frontend
+uses the editor when the Go admin API is available. Both older backends
+and old clients retain their existing response fields.
+
+Go calculates the largest eligible automatic discount for each unit from
+the selected volume's base price, rounding in kopeks. Fixed automatic
+discounts apply per unit and are capped at that unit's base price. Existing
+promo-code calculation runs after automatic discounts. Previously saved
+orders retain their snapshots. Drafts are stored inactive and don't affect
+storefront pricing.
+
 Contract tests
 --------------
 Start a disposable PostgreSQL 17 instance. Set SKVIDERM_TEST_DATABASE_URL

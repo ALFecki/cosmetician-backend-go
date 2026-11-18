@@ -82,6 +82,22 @@ func run() error {
 		}
 		accounts.bannerDB = pool
 	}
+	promotionManagement, err := optionalFlag("PROMOTION_MANAGEMENT_ENABLED")
+	if err != nil {
+		return err
+	}
+	if promotionManagement {
+		if accounts == nil {
+			return errors.New("PROMOTION_MANAGEMENT_ENABLED requires JWT_SECRET")
+		}
+		checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		_, err := pool.Exec(checkCtx, "SELECT is_draft FROM promotion LIMIT 0")
+		cancel()
+		if err != nil {
+			return errors.New("PROMOTION_MANAGEMENT_ENABLED requires access to promotion.is_draft from migrations/0002_promotion_draft.sql")
+		}
+		accounts.promotionDB = pool
+	}
 
 	checkoutEnabled := false
 	if raw := os.Getenv("PHONE_CHECKOUT_ENABLED"); raw != "" {
@@ -139,6 +155,10 @@ func run() error {
 			}
 			accounts.confirmation = settings
 		}
+	}
+
+	if promotionManagement && accounts.confirmation == nil {
+		return errors.New("PROMOTION_MANAGEMENT_ENABLED requires ORDER_CONFIRMATION_ENABLED")
 	}
 
 	writeTimeout, shutdownTimeout := 15*time.Second, 10*time.Second
