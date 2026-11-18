@@ -60,7 +60,7 @@ func newOrderPayments(db *pgxpool.Pool, clientURL, registerURL, statusURL, usern
 	return &orderPayments{
 		db: db, clientURL: strings.TrimRight(clientURL, "/"), registerURL: registerURL,
 		statusURL: statusURL, username: username, password: password,
-		client: &http.Client{Timeout: bankTimeout, CheckRedirect: refuseBankRedirect},
+		client: &http.Client{Timeout: bankTimeout, CheckRedirect: refuseRedirect},
 	}, nil
 }
 
@@ -69,7 +69,7 @@ func securePaymentURL(value string) bool {
 	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil
 }
 
-func refuseBankRedirect(_ *http.Request, _ []*http.Request) error {
+func refuseRedirect(_ *http.Request, _ []*http.Request) error {
 	return http.ErrUseLastResponse
 }
 

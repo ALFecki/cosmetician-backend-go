@@ -1,5 +1,7 @@
 ALTER TABLE "order"
     ADD COLUMN checkout_request_hash text,
+    ADD COLUMN notification_sent_at timestamptz,
+    ADD COLUMN payment_started_at timestamptz,
     ADD UNIQUE (checkout_key);
 
 CREATE TABLE promo_code_usage (
