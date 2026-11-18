@@ -145,6 +145,32 @@ promo-code calculation runs after automatic discounts. Previously saved
 orders retain their snapshots. Drafts are stored inactive and don't affect
 storefront pricing.
 
+Full Go runtime
+---------------
+
+Set FULL_BACKEND_ENABLED=true with JWT_SECRET, CLIENT_URL, REDIS_URL,
+EMAIL_LOGIN, EMAIL_PASSWORD and the MinIO settings above. This enables
+account registration and recovery, profile and guest-order linking,
+catalog administration, image uploads, promo codes, order administration
+and statistics. Use scripts/full_runtime_grants.sql with a dedicated
+PostgreSQL login and the psql variable go_role. Apply the Go migrations
+before granting access. The existing MinIO bucket must allow GetObject and
+PutObject for product and banner images.
+
+Configure the cart, guest checkout, payments, notifications, banners and
+promotions with the flags above. SMS login stays disabled by default. To
+enable it, set SMS_LOGIN_ENABLED=true and SMS_ASSISTANT_USER,
+SMS_ASSISTANT_PASSWORD and an approved SMS_ASSISTANT_SENDER.
+Preserve the previous JWT secret and Redis database so sessions and limits
+survive cutover. Use the existing Gmail SMTP credentials for account and
+order email. Readiness checks PostgreSQL and configured Redis. The
+maintenance flag uses the existing Redis key. Europochta locations retain
+their existing upstream.
+
+Archiving preserves order history. Customer and product deletion is
+rejected while an order references them. Disable an already-used promo
+code to keep its usage history.
+
 Contract tests
 --------------
 Start a disposable PostgreSQL 17 instance. Set SKVIDERM_TEST_DATABASE_URL

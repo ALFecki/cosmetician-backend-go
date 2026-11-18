@@ -13,19 +13,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type accountAuth struct {
-	db            database
-	cartDB        cartDatabase
-	bannerDB      cartDatabase
-	promotionDB   cartDatabase
-	confirmation  *checkoutConfirmation
-	payments      *orderPayments
-	key           []byte
-	secureCookies bool
-	guestOrigin   string
+	db              database
+	cartDB          cartDatabase
+	bannerDB        cartDatabase
+	promotionDB     cartDatabase
+	confirmation    *checkoutConfirmation
+	payments        *orderPayments
+	key             []byte
+	secureCookies   bool
+	guestOrigin     string
+	guestSessions   *guestOrderLimiter
+	operationsRedis *redis.Client
+	fullDB          cartDatabase
+	writes          *accountWrites
+	orderMailer     accountMailer
 }
 
 type account struct {

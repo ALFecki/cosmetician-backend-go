@@ -30,6 +30,7 @@ type singleResponse struct {
 
 func newHandler(db database, images *imageStore, accounts *accountAuth, checkoutEnabled bool) http.Handler {
 	mux := http.NewServeMux()
+	registerOperations(mux, db, accounts)
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
 		entries, err := listBanners(r.Context(), db, false)
 		if err != nil {
@@ -48,11 +49,22 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 	mux.HandleFunc("POST /api/checkout/cart/quote", cartQuoteHandler(db, checkoutEnabled))
 	if accounts != nil {
 		mux.HandleFunc("POST /api/login", accounts.login)
+		mux.HandleFunc("POST /api/logout", accounts.logout)
 		mux.HandleFunc("GET /api/check_auth", accounts.check)
 		mux.HandleFunc("GET /api/person", accounts.listProfiles)
 		mux.HandleFunc("GET /api/person/{id}", accounts.profile)
 		accounts.registerOrderReads(mux)
 		accounts.registerCheckoutReads(mux)
+		if accounts.writes != nil {
+			accounts.writes.register(mux)
+		}
+		if accounts.fullDB != nil {
+			accounts.registerCatalogWrites(mux, accounts.fullDB)
+			accounts.registerLegacyCommerce(mux, accounts.fullDB, accounts.orderMailer)
+			if images != nil {
+				accounts.registerImageUpload(mux, images)
+			}
+		}
 		if accounts.bannerDB != nil {
 			accounts.registerAdminBanners(mux)
 		}

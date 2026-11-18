@@ -77,14 +77,14 @@ var titleFilters = []string{"title", "description"}
 var taxonFilters = []string{"title", "description", "createdAt", "updatedAt"}
 
 var brands = catalogResource{
-	fromSQL:  "SELECT id, title, description, is_deleted, created_at, updated_at, image, manufacturer, importer FROM brand",
+	fromSQL:  "SELECT id, title, COALESCE(description, ''), is_deleted, created_at, updated_at, image, manufacturer, importer FROM brand",
 	scan:     scanBrand,
 	filters:  titleFilters,
 	paginate: true,
 }
 
 var categories = catalogResource{
-	fromSQL:  "SELECT id, title, description, is_deleted, created_at, updated_at FROM category",
+	fromSQL:  "SELECT id, title, COALESCE(description, ''), is_deleted, created_at, updated_at FROM category",
 	scan:     scanCategory,
 	filters:  titleFilters,
 	paginate: true,

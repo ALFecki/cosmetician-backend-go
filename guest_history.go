@@ -31,29 +31,36 @@ func (auth *accountAuth) registerCheckoutReads(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/checkout/attempt/{id}", auth.checkoutAttempt)
 	if auth.guestOrigin != "" {
 		mux.HandleFunc("GET /api/checkout/guest/session", auth.restoreGuest)
+		mux.HandleFunc("POST /api/checkout/guest/session", auth.startGuestSession)
 		mux.HandleFunc("GET /api/checkout/guest/orders", auth.guestOrders)
 		mux.HandleFunc("GET /api/checkout/guest/orders/{id}", auth.guestOrder(false))
 		mux.HandleFunc("GET /api/checkout/guest/attempt/{id}", auth.guestOrder(true))
 	}
 }
 
-func (auth *accountAuth) guestSession(w http.ResponseWriter, r *http.Request, requireCSRF bool) (guestSessionClaims, bool) {
-	var claims guestSessionClaims
+func (auth *accountAuth) validGuestOrigin(r *http.Request) bool {
 	origins := r.Header.Values("Origin")
-	if len(origins) > 0 && (len(origins) != 1 || origins[0] != auth.guestOrigin) {
-		writeCheckoutError(w, http.StatusUnauthorized, "Недопустимый источник запроса")
-		return claims, false
-	}
+	return len(origins) == 0 || (len(origins) == 1 && origins[0] == auth.guestOrigin)
+}
 
+func (auth *accountAuth) parseGuestSession(r *http.Request) (guestSessionClaims, bool) {
+	var claims guestSessionClaims
 	cookie, err := r.Cookie(guestCookieName)
 	if err != nil {
-		writeCheckoutError(w, http.StatusUnauthorized, guestSessionExpired)
 		return claims, false
 	}
 	_, err = jwt.ParseWithClaims(cookie.Value, &claims, auth.verificationKey,
 		jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired(), jwt.WithAudience(guestAudience))
-	if err != nil || claims.ID == uuid.Nil || claims.CSRFToken == "" || len(claims.Audience) != 1 ||
-		(requireCSRF && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Guest-CSRF")), []byte(claims.CSRFToken)) != 1) {
+	return claims, err == nil && claims.ID != uuid.Nil && claims.CSRFToken != "" && len(claims.Audience) == 1
+}
+
+func (auth *accountAuth) guestSession(w http.ResponseWriter, r *http.Request, requireCSRF bool) (guestSessionClaims, bool) {
+	if !auth.validGuestOrigin(r) {
+		writeCheckoutError(w, http.StatusUnauthorized, "Недопустимый источник запроса")
+		return guestSessionClaims{}, false
+	}
+	claims, ok := auth.parseGuestSession(r)
+	if !ok || (requireCSRF && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Guest-CSRF")), []byte(claims.CSRFToken)) != 1) {
 		writeCheckoutError(w, http.StatusUnauthorized, guestSessionExpired)
 		return claims, false
 	}
@@ -62,24 +69,8 @@ func (auth *accountAuth) guestSession(w http.ResponseWriter, r *http.Request, re
 
 func (auth *accountAuth) restoreGuest(w http.ResponseWriter, r *http.Request) {
 	claims, ok := auth.guestSession(w, r, false)
-	if !ok {
-		return
-	}
-
-	customer, err := scanAccount(auth.db.QueryRow(r.Context(),
-		"SELECT "+accountColumns+", NULL::text FROM person"+guestPersonWhere, claims.ID))
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
-		writeCheckoutError(w, http.StatusUnauthorized, guestSessionExpired)
-	case err != nil:
-		orderReadFailure(w)
-	default:
-		w.Header().Set("Cache-Control", "no-store")
-		writeJSON(w, struct {
-			CSRFToken string  `json:"csrfToken"`
-			ExpiresAt int64   `json:"expiresAt"`
-			Customer  account `json:"customer"`
-		}{claims.CSRFToken, claims.ExpiresAt.Unix(), customer})
+	if ok {
+		auth.respondGuestSession(w, r, claims, false)
 	}
 }
 

@@ -56,7 +56,6 @@ func (auth *accountAuth) registerCartRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/checkout/cart", auth.cartHandler(replaceCart))
 	mux.HandleFunc("POST /api/checkout/cart/merge", auth.cartHandler(mergeCart))
 	mux.HandleFunc("POST /api/checkout/cart/items", auth.cartHandler(addCartItem))
-	mux.HandleFunc("POST /api/logout", auth.logout)
 }
 
 func (auth *accountAuth) cartHandler(action cartAction) http.HandlerFunc {

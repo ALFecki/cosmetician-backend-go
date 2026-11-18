@@ -72,6 +72,15 @@ func run() error {
 			guestOrigin: strings.TrimRight(os.Getenv("CLIENT_URL"), "/")}
 	}
 
+	if redisURL := os.Getenv("REDIS_URL"); accounts != nil && redisURL != "" {
+		cache, err := newOperationsRedis(redisURL)
+		if err != nil {
+			return err
+		}
+		defer cache.Close()
+		accounts.operationsRedis = cache
+	}
+
 	adminBanners, err := optionalFlag("ADMIN_BANNERS_ENABLED")
 	if err != nil {
 		return err
@@ -152,6 +161,7 @@ func run() error {
 				}
 				defer limiter.Close()
 				settings.guestLimiter = limiter
+				accounts.guestSessions = limiter
 			}
 			accounts.confirmation = settings
 		}
@@ -159,6 +169,28 @@ func run() error {
 
 	if promotionManagement && accounts.confirmation == nil {
 		return errors.New("PROMOTION_MANAGEMENT_ENABLED requires ORDER_CONFIRMATION_ENABLED")
+	}
+
+	fullBackend, err := optionalFlag("FULL_BACKEND_ENABLED")
+	if err != nil {
+		return err
+	}
+	if fullBackend {
+		if accounts == nil || accounts.guestOrigin == "" || accounts.operationsRedis == nil || images == nil {
+			return errors.New("FULL_BACKEND_ENABLED requires JWT_SECRET, CLIENT_URL, REDIS_URL and MinIO")
+		}
+		guestEnabled := accounts.confirmation != nil && accounts.confirmation.guestEnabled
+		writes, err := newAccountWrites(accounts, pool, checkoutEnabled, guestEnabled)
+		if err != nil {
+			return err
+		}
+		defer writes.Close()
+		if writes.mailer == nil {
+			return errors.New("FULL_BACKEND_ENABLED requires EMAIL_LOGIN and EMAIL_PASSWORD")
+		}
+		accounts.fullDB = pool
+		accounts.writes = writes
+		accounts.orderMailer = writes.mailer
 	}
 
 	writeTimeout, shutdownTimeout := 15*time.Second, 10*time.Second
