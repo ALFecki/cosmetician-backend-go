@@ -76,8 +76,7 @@ same trusted proxy IP if it supplies X-Real-IP. Account checkout follows
 the same verified-phone requirement as Rust when guest checkout is off.
 
 Go saves confirmed orders with the existing checkout key, notification
-and payment state. Keep the Rust background jobs active while they
-handle order notifications.
+and payment state.
 
 Online payments
 ---------------
@@ -91,10 +90,25 @@ Rust and Go. A repeat returns a saved payment link. If the bank outcome
 is uncertain, the attempt stays reserved for manual reconciliation.
 
 The optional PAYMENT_STATUS_SYNC_ENABLED worker uses the same bank and
-PostgreSQL state. Leave it off while Rust background jobs are running.
-The current Rust BACKGROUND_JOBS_ENABLED controls both that payment
-worker and order notifications. Keep it enabled until notifications
-have their own worker. At handover, enable Go status sync on one replica.
+PostgreSQL state. At handover, enable Go status sync on one replica.
+
+Order notifications
+-------------------
+Enable ORDER_NOTIFICATIONS_ENABLED with the existing CLIENT_URL,
+TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID. Go sends the Telegram message after
+order confirmation is committed. A background worker retries unconfirmed
+deliveries from either backend and recovers orders pending before startup.
+Rust and Go share the existing PostgreSQL row lock and delivery marker.
+Telegram errors leave the order confirmed and pending for another attempt.
+Go attempts one send at a time per process and leaves other orders queued.
+It defers retries during bank registration. Allow 40s for Go checkout
+requests when notifications are enabled. If Telegram accepted a message
+but its response or the database commit was lost, a retry can resend it.
+
+Rust BACKGROUND_JOBS_ENABLED controls payment sync, notification retries
+and legacy Redis cart sync. Keep it enabled until cart reconciliation and
+routing are complete and both Go background workers are ready. At handover,
+switch off Rust background jobs before enabling Go payment status sync.
 
 Contract tests
 --------------
@@ -115,5 +129,5 @@ Run the importer tests with:
 
     python3 -B -m unittest discover -s scripts -p test_legacy_carts.py
 
-GitHub Actions runs the tests with PostgreSQL, Redis and a local HTTPS
-bank simulator, and builds the Linux image.
+GitHub Actions runs the tests with PostgreSQL, Redis and local HTTPS
+simulators for bank and Telegram requests, and builds the Linux image.

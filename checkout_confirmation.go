@@ -20,8 +20,9 @@ type guestCheckoutLimiter interface {
 }
 
 type checkoutConfirmation struct {
-	guestEnabled bool
-	guestLimiter guestCheckoutLimiter
+	guestEnabled  bool
+	guestLimiter  guestCheckoutLimiter
+	notifications *orderNotifications
 }
 
 var errCheckoutKeyConflict = cartRequestError{http.StatusConflict, "Заказ с этим ключом уже оформлен с другими данными"}
@@ -79,6 +80,13 @@ func (auth *accountAuth) confirmCheckout(guest bool) http.HandlerFunc {
 			return
 		}
 
+		if notifications := auth.confirmation.notifications; notifications != nil {
+			cancel()
+			notifications.deliverLogged(r.Context(), id)
+			replyCtx, finish := context.WithTimeout(r.Context(), 5*time.Second)
+			defer finish()
+			ctx = replyCtx
+		}
 		auth.readCheckoutOrder(w, r.WithContext(ctx), " WHERE o.person_id = $1 AND o.id = $2", person, id, false)
 	}
 }

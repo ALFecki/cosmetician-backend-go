@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -152,17 +153,35 @@ func run() error {
 		}
 		accounts.payments = payments
 		writeTimeout, shutdownTimeout = paymentHTTPTimeout, paymentHTTPTimeout
-		if syncPaymentStatus {
-			done := make(chan struct{})
-			go func() {
-				defer close(done)
-				payments.runStatusSync(ctx)
-			}()
-			defer func() {
-				cancel()
-				<-done
-			}()
+	}
+
+	var notifications *orderNotifications
+	notificationsEnabled, err := optionalFlag("ORDER_NOTIFICATIONS_ENABLED")
+	if err != nil {
+		return err
+	}
+	if notificationsEnabled {
+		notifications, err = newOrderNotifications(pool, os.Getenv("CLIENT_URL"),
+			os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"))
+		if err != nil {
+			return err
 		}
+		if accounts != nil && accounts.confirmation != nil {
+			accounts.confirmation.notifications = notifications
+			writeTimeout, shutdownTimeout = 40*time.Second, 40*time.Second
+		}
+	}
+
+	var workers sync.WaitGroup
+	defer func() {
+		cancel()
+		workers.Wait()
+	}()
+	if syncPaymentStatus {
+		workers.Go(func() { accounts.payments.runStatusSync(ctx) })
+	}
+	if notifications != nil {
+		workers.Go(func() { notifications.run(ctx) })
 	}
 
 	server := &http.Server{
