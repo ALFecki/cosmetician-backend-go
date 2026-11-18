@@ -61,6 +61,9 @@ func productListHandler(db database) http.HandlerFunc {
 			databaseFailure(w, "load product list promotions", err)
 			return
 		}
+		if promotionPricingEnabled(ctx) {
+			applyProductPromotionPrices(result.Data)
+		}
 		writeJSON(w, result)
 	}
 }
@@ -205,6 +208,9 @@ func productDetailHandler(db database) http.HandlerFunc {
 			databaseFailure(w, "load product promotions", err)
 			return
 		}
+		if promotionPricingEnabled(ctx) {
+			applyProductPromotionPrices(entries)
+		}
 		writeJSON(w, singleResponse{Status: "success", Data: entries[0]})
 	}
 }
@@ -255,7 +261,14 @@ func variantListHandler(db database) http.HandlerFunc {
 			databaseFailure(w, "list product variants", err)
 			return
 		}
-		writeJSON(w, paginated(entries, filter))
+		result := paginated(entries, filter)
+		if promotionPricingEnabled(r.Context()) {
+			if err := loadVariantPromotionPrices(r.Context(), db, result.Data); err != nil {
+				databaseFailure(w, "load variant list promotions", err)
+				return
+			}
+		}
+		writeJSON(w, result)
 	}
 }
 
@@ -274,6 +287,12 @@ func variantDetailHandler(db database) http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		if promotionPricingEnabled(r.Context()) {
+			if err := loadVariantPromotionPrices(r.Context(), db, entries); err != nil {
+				databaseFailure(w, "load variant promotions", err)
+				return
+			}
+		}
 		writeJSON(w, singleResponse{Status: "success", Data: entries[0]})
 	}
 }
@@ -282,6 +301,9 @@ type promotionError struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
+
+// The public routes also run on databases that have not applied the draft migration.
+const publishedPromotionRecord = "NOT COALESCE((to_jsonb(promo)->>'is_draft')::boolean, false)"
 
 func registerPromotionRoutes(mux *http.ServeMux, db database) {
 	mux.HandleFunc("GET /api/product/{id}/promotions", func(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +331,8 @@ func registerPromotionRoutes(mux *http.ServeMux, db database) {
 		writeJSON(w, listResponse[promoCode]{Status: "success", Length: len(entries), Data: entries})
 	})
 	mux.HandleFunc("GET /api/promotion", func(w http.ResponseWriter, r *http.Request) {
-		entries, err := queryStructs[promotion](r.Context(), db, promotionSelect+" GROUP BY promo.id")
+		entries, err := queryStructs[promotion](r.Context(), db, promotionSelect+
+			" WHERE "+publishedPromotionRecord+" GROUP BY promo.id")
 		if err != nil {
 			promotionFailure(w, "Failed to get promotions", err)
 			return
@@ -321,7 +344,8 @@ func registerPromotionRoutes(mux *http.ServeMux, db database) {
 		if !ok {
 			return
 		}
-		entries, err := queryStructs[promotion](r.Context(), db, promotionSelect+" WHERE promo.id = $1 GROUP BY promo.id", id)
+		entries, err := queryStructs[promotion](r.Context(), db, promotionSelect+
+			" WHERE promo.id = $1 AND "+publishedPromotionRecord+" GROUP BY promo.id", id)
 		if err != nil {
 			promotionFailure(w, "Failed to get promotion", err)
 			return

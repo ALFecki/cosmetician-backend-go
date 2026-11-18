@@ -50,15 +50,16 @@ type country struct {
 }
 
 type variant struct {
-	ID        pgtype.UUID `json:"id"`
-	ProductID pgtype.UUID `json:"productId"`
-	Volume    float32     `json:"volume"`
-	CostPrice float32     `json:"costPrice"`
-	Price     float32     `json:"price"`
-	IsDefault bool        `json:"isDefault"`
-	IsDeleted *bool       `json:"isDeleted"`
-	CreatedAt apiTime     `json:"createdAt"`
-	UpdatedAt apiTime     `json:"updatedAt"`
+	ID             pgtype.UUID     `json:"id"`
+	ProductID      pgtype.UUID     `json:"productId"`
+	Volume         float32         `json:"volume"`
+	CostPrice      float32         `json:"costPrice"`
+	Price          float32         `json:"price"`
+	IsDefault      bool            `json:"isDefault"`
+	IsDeleted      *bool           `json:"isDeleted"`
+	CreatedAt      apiTime         `json:"createdAt"`
+	UpdatedAt      apiTime         `json:"updatedAt"`
+	PromotionPrice *promotionPrice `json:"promotionPrice,omitempty" db:"-"`
 }
 
 const productSelect = `

@@ -56,6 +56,9 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 		if accounts.bannerDB != nil {
 			accounts.registerAdminBanners(mux)
 		}
+		if accounts.promotionDB != nil {
+			accounts.registerAdminPromotions(mux)
+		}
 		if accounts.payments != nil {
 			accounts.registerPaymentRoutes(mux)
 		}
@@ -66,10 +69,14 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 			}
 		}
 	}
-	if images != nil {
-		return storefrontCORS(images.routes(mux))
+	var handler http.Handler = mux
+	if accounts != nil && accounts.promotionDB != nil {
+		handler = withPromotionPricing(handler)
 	}
-	return storefrontCORS(mux)
+	if images != nil {
+		handler = images.routes(handler)
+	}
+	return storefrontCORS(handler)
 }
 
 func registerCatalog(mux *http.ServeMux, db database, path string, resource catalogResource) {

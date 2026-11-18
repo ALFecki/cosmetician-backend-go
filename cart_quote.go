@@ -129,15 +129,7 @@ func quoteCart(ctx context.Context, db database, input quoteRequest) (cartQuote,
 	if err != nil {
 		return cartQuote{}, err
 	}
-	var base float32
-	for _, item := range products {
-		base += float32(item.Variant.Price * float32(item.Quantity))
-	}
-	subtotal, err := checkoutCents(base)
-	if err != nil {
-		return cartQuote{}, err
-	}
-	promoDiscount, err := checkoutCents(min(base, max(0, cartPromotionDiscount(products, promos, base))))
+	subtotal, promoDiscount, err := quotePromotionTotals(products, promos, promotionPricingEnabled(ctx))
 	if err != nil {
 		return cartQuote{}, err
 	}
@@ -198,6 +190,13 @@ func loadQuoteProducts(ctx context.Context, db database, items []cartItem, promo
 		return nil, nil, err
 	}
 
+	pricingEnabled := promotionPricingEnabled(ctx)
+	if pricingEnabled {
+		for _, entry := range productsByID {
+			setVariantPromotionPrices(entry.Variants, entry.Promotions)
+		}
+	}
+
 	for _, item := range items {
 		v := variantsByID[item.VariantID]
 		p, exists := productsByID[v.ProductID]
@@ -205,8 +204,13 @@ func loadQuoteProducts(ctx context.Context, db database, items []cartItem, promo
 			unavailable = append(unavailable, item)
 			continue
 		}
-		if _, err := checkoutCents(v.Price); err != nil {
+		baseCents, err := checkoutCents(v.Price)
+		if err != nil {
 			return nil, nil, err
+		}
+		if pricingEnabled {
+			price := bestPromotionPrice(baseCents, v.ProductID, p.Promotions)
+			v.PromotionPrice = &price
 		}
 		products = append(products, orderProduct{
 			Product: p, Variant: v, Quantity: item.Quantity,
@@ -214,6 +218,33 @@ func loadQuoteProducts(ctx context.Context, db database, items []cartItem, promo
 		})
 	}
 	return products, unavailable, nil
+}
+
+func quotePromotionTotals(products []orderProduct, promos []promotion, enabled bool) (int64, int64, error) {
+	if enabled {
+		var subtotal, discount int64
+		for _, item := range products {
+			price := item.Variant.PromotionPrice
+			quantity := int64(item.Quantity)
+			subtotal += (price.FinalCents + price.SavingCents) * quantity
+			discount += price.SavingCents * quantity
+		}
+		if subtotal > maxCheckoutAmount*100 {
+			return 0, 0, quoteInputError("Некорректная сумма")
+		}
+		return subtotal, discount, nil
+	}
+
+	var base float32
+	for _, item := range products {
+		base += item.Variant.Price * float32(item.Quantity)
+	}
+	subtotal, err := checkoutCents(base)
+	if err != nil {
+		return 0, 0, err
+	}
+	discount, err := checkoutCents(min(base, max(0, cartPromotionDiscount(products, promos, base))))
+	return subtotal, discount, err
 }
 
 func cartPromotionDiscount(items []orderProduct, promos []promotion, subtotal float32) float32 {
@@ -283,8 +314,10 @@ func quotePromoCode(ctx context.Context, db database, result *cartQuote, afterPr
 	return nil
 }
 
+const maxCheckoutAmount = 1_000_000
+
 func checkoutCents(amount float32) (int64, error) {
-	if math.IsNaN(float64(amount)) || amount < 0 || amount > 1_000_000 {
+	if math.IsNaN(float64(amount)) || amount < 0 || amount > maxCheckoutAmount {
 		return 0, quoteInputError("Некорректная сумма")
 	}
 	return int64(math.Round(float64(amount) * 100)), nil
