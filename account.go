@@ -20,6 +20,7 @@ type accountAuth struct {
 	db            database
 	cartDB        cartDatabase
 	confirmation  *checkoutConfirmation
+	payments      *orderPayments
 	key           []byte
 	secureCookies bool
 	guestOrigin   string

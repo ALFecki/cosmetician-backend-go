@@ -75,9 +75,26 @@ by Rust for guest admission counters. Set SMS_TRUSTED_PROXY_IP to the
 same trusted proxy IP if it supplies X-Real-IP. Account checkout follows
 the same verified-phone requirement as Rust when guest checkout is off.
 
-Keep the Rust payment routes and background jobs active to process bank
-payments and send pending order notifications. Go saves confirmed orders
-with the existing checkout key, notification and payment state.
+Go saves confirmed orders with the existing checkout key, notification
+and payment state. Keep the Rust background jobs active while they
+handle order notifications.
+
+Online payments
+---------------
+Enable ORDER_PAYMENTS_ENABLED to serve POST /api/payments/process and
+POST /api/checkout/guest/payments/process with the same response as Rust.
+Use the existing JWT_SECRET, CLIENT_URL, ACQUIRING_URL,
+ACQUIRING_ORDER_STATUS_URL, ACQUIRING_USERNAME and ACQUIRING_PASSWORD.
+The bank URLs must use HTTPS. Route both payment endpoints together.
+The existing PostgreSQL payment fields coordinate registration across
+Rust and Go. A repeat returns a saved payment link. If the bank outcome
+is uncertain, the attempt stays reserved for manual reconciliation.
+
+The optional PAYMENT_STATUS_SYNC_ENABLED worker uses the same bank and
+PostgreSQL state. Leave it off while Rust background jobs are running.
+The current Rust BACKGROUND_JOBS_ENABLED controls both that payment
+worker and order notifications. Keep it enabled until notifications
+have their own worker. At handover, enable Go status sync on one replica.
 
 Contract tests
 --------------
@@ -98,4 +115,5 @@ Run the importer tests with:
 
     python3 -B -m unittest discover -s scripts -p test_legacy_carts.py
 
-GitHub Actions runs the tests with PostgreSQL and builds the Linux image.
+GitHub Actions runs the tests with PostgreSQL, Redis and a local HTTPS
+bank simulator, and builds the Linux image.

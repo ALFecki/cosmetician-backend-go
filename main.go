@@ -129,10 +129,46 @@ func run() error {
 		}
 	}
 
+	writeTimeout, shutdownTimeout := 15*time.Second, 10*time.Second
+	paymentsEnabled, err := optionalFlag("ORDER_PAYMENTS_ENABLED")
+	if err != nil {
+		return err
+	}
+	syncPaymentStatus, err := optionalFlag("PAYMENT_STATUS_SYNC_ENABLED")
+	if err != nil {
+		return err
+	}
+	if syncPaymentStatus && !paymentsEnabled {
+		return errors.New("PAYMENT_STATUS_SYNC_ENABLED requires ORDER_PAYMENTS_ENABLED")
+	}
+	if paymentsEnabled {
+		if accounts == nil {
+			return errors.New("ORDER_PAYMENTS_ENABLED requires JWT_SECRET")
+		}
+		payments, err := newOrderPayments(pool, accounts.guestOrigin, os.Getenv("ACQUIRING_URL"),
+			os.Getenv("ACQUIRING_ORDER_STATUS_URL"), os.Getenv("ACQUIRING_USERNAME"), os.Getenv("ACQUIRING_PASSWORD"))
+		if err != nil {
+			return err
+		}
+		accounts.payments = payments
+		writeTimeout, shutdownTimeout = paymentHTTPTimeout, paymentHTTPTimeout
+		if syncPaymentStatus {
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				payments.runStatusSync(ctx)
+			}()
+			defer func() {
+				cancel()
+				<-done
+			}()
+		}
+	}
+
 	server := &http.Server{
 		Addr: address, Handler: newHandler(pool, images, accounts, checkoutEnabled),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
-		WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second,
+		WriteTimeout: writeTimeout, IdleTimeout: 60 * time.Second,
 	}
 	result := make(chan error, 1)
 	go func() { result <- server.ListenAndServe() }()
@@ -141,7 +177,7 @@ func run() error {
 	case err := <-result:
 		return err
 	case <-ctx.Done():
-		shutdown, stop := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdown, stop := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer stop()
 		err := server.Shutdown(shutdown)
 		if err != nil {
@@ -149,4 +185,16 @@ func run() error {
 		}
 		return err
 	}
+}
+
+func optionalFlag(name string) (bool, error) {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return false, nil
+	}
+	enabled, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, errors.New(name + " must be a boolean")
+	}
+	return enabled, nil
 }
