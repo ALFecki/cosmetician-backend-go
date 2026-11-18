@@ -110,6 +110,17 @@ and legacy Redis cart sync. Keep it enabled until cart reconciliation and
 routing are complete and both Go background workers are ready. At handover,
 switch off Rust background jobs before enabling Go payment status sync.
 
+Admin banners
+-------------
+Enable ADMIN_BANNERS_ENABLED with JWT_SECRET and the existing Rust banner
+migration. Route /api/admin/banner and /api/admin/banner/{id} to Go.
+Moderators and administrators can read, create, edit and delete banners
+with the existing account cookie and X-CSRF-Token. Give the Go database
+role INSERT, UPDATE and DELETE on banner in addition to SELECT. The
+public banner feed uses the same table and keeps its active-only filter.
+The image upload route stays on Rust and both services can use the
+existing image paths.
+
 Contract tests
 --------------
 Start a disposable PostgreSQL 17 instance. Set SKVIDERM_TEST_DATABASE_URL

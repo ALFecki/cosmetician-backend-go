@@ -72,6 +72,17 @@ func run() error {
 			guestOrigin: strings.TrimRight(os.Getenv("CLIENT_URL"), "/")}
 	}
 
+	adminBanners, err := optionalFlag("ADMIN_BANNERS_ENABLED")
+	if err != nil {
+		return err
+	}
+	if adminBanners {
+		if accounts == nil {
+			return errors.New("ADMIN_BANNERS_ENABLED requires JWT_SECRET")
+		}
+		accounts.bannerDB = pool
+	}
+
 	checkoutEnabled := false
 	if raw := os.Getenv("PHONE_CHECKOUT_ENABLED"); raw != "" {
 		checkoutEnabled, err = strconv.ParseBool(raw)

@@ -20,7 +20,7 @@ CREATE TEMP TABLE category (
 );
 
 CREATE TEMP TABLE banner (
-    id uuid PRIMARY KEY,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     title varchar(255) NOT NULL,
     subtitle varchar(1000) NOT NULL,
     image varchar(1024) NOT NULL,
@@ -28,6 +28,6 @@ CREATE TEMP TABLE banner (
     button_link varchar(2048) NOT NULL,
     sort_order integer NOT NULL CHECK (sort_order BETWEEN 0 AND 10000),
     is_active boolean NOT NULL,
-    created_at timestamptz NOT NULL,
-    updated_at timestamptz NOT NULL
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
 );

@@ -31,7 +31,7 @@ type singleResponse struct {
 func newHandler(db database, images *imageStore, accounts *accountAuth, checkoutEnabled bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
-		entries, err := listBanners(r.Context(), db)
+		entries, err := listBanners(r.Context(), db, false)
 		if err != nil {
 			databaseFailure(w, "list banners", err)
 			return
@@ -53,6 +53,9 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 		mux.HandleFunc("GET /api/person/{id}", accounts.profile)
 		accounts.registerOrderReads(mux)
 		accounts.registerCheckoutReads(mux)
+		if accounts.bannerDB != nil {
+			accounts.registerAdminBanners(mux)
+		}
 		if accounts.payments != nil {
 			accounts.registerPaymentRoutes(mux)
 		}
