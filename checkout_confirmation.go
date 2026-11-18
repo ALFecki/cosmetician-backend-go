@@ -232,22 +232,33 @@ func equalPromoCodes(left, right *string) bool {
 }
 
 func checkoutOrderQuote(ctx context.Context, tx pgx.Tx, request checkoutRequest) (cartQuote, error) {
+	quote, err := priceCheckoutItems(ctx, tx, request.Items, request.PromoCode,
+		request.Details.DeliveryMethod, request.Details.IsCourierDelivery)
+	if err != nil {
+		return cartQuote{}, err
+	}
+	if quote.TotalCents != *request.ExpectedTotalCents {
+		return cartQuote{}, cartRequestError{http.StatusConflict, "Стоимость заказа изменилась. Проверьте обновлённый итог перед подтверждением"}
+	}
+	return quote, nil
+}
+
+func priceCheckoutItems(ctx context.Context, tx pgx.Tx, items []cartItem, promoCode *string, method string, courier bool) (cartQuote, error) {
 	var variants []uuid.UUID
-	for _, item := range request.Items {
+	for _, item := range items {
 		variants = append(variants, item.VariantID)
 	}
 	if _, err := tx.Exec(ctx, `SELECT v.id FROM product_variant v JOIN product p ON p.id = v.product_id
 		WHERE v.id = ANY($1) ORDER BY v.id FOR SHARE OF v, p`, variants); err != nil {
 		return cartQuote{}, err
 	}
-	if request.PromoCode != nil {
-		if _, err := tx.Exec(ctx, "SELECT id FROM promo_code WHERE code = $1 FOR UPDATE", *request.PromoCode); err != nil {
+	if promoCode != nil {
+		if _, err := tx.Exec(ctx, "SELECT id FROM promo_code WHERE code = $1 FOR UPDATE", *promoCode); err != nil {
 			return cartQuote{}, err
 		}
 	}
 	quote, err := quoteCart(ctx, tx, quoteRequest{
-		Items: request.Items, PromoCode: request.PromoCode,
-		DeliveryMethod: &request.Details.DeliveryMethod, IsCourierDelivery: &request.Details.IsCourierDelivery,
+		Items: items, PromoCode: promoCode, DeliveryMethod: &method, IsCourierDelivery: &courier,
 	})
 	if err != nil {
 		return cartQuote{}, err
@@ -257,9 +268,6 @@ func checkoutOrderQuote(ctx context.Context, tx pgx.Tx, request checkoutRequest)
 	}
 	if quote.PromoCodeError != nil {
 		return cartQuote{}, quoteInputError(*quote.PromoCodeError)
-	}
-	if quote.TotalCents != *request.ExpectedTotalCents {
-		return cartQuote{}, cartRequestError{http.StatusConflict, "Стоимость заказа изменилась. Проверьте обновлённый итог перед подтверждением"}
 	}
 	return quote, nil
 }
@@ -305,6 +313,10 @@ func persistCheckout(ctx context.Context, tx pgx.Tx, cart savedCart, quote cartQ
 		request.Details.Comment, snapshot, request.CheckoutKey, fingerprint, cart.Revision+1, cart.ID); err != nil {
 		return err
 	}
+	return consumeCheckoutPromo(ctx, tx, cart.ID, person, quote)
+}
+
+func consumeCheckoutPromo(ctx context.Context, tx pgx.Tx, orderID, person uuid.UUID, quote cartQuote) error {
 	if quote.Order.PromoCodeID == nil {
 		return nil
 	}
@@ -318,7 +330,7 @@ func persistCheckout(ctx context.Context, tx pgx.Tx, cart savedCart, quote cartQ
 		return cartRequestError{http.StatusConflict, "Промокод исчерпан. Проверьте итог заказа"}
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO promo_code_usage (promo_code_id, order_id, person_id, discount_amount)
-		VALUES ($1, $2, $3, $4)`, quote.Order.PromoCodeID, cart.ID, person, float32(quote.PromoCodeDiscountCents)/100)
+		VALUES ($1, $2, $3, $4)`, quote.Order.PromoCodeID, orderID, person, float32(quote.PromoCodeDiscountCents)/100)
 	return err
 }
 

@@ -140,24 +140,30 @@ func normalizeCheckout(request *checkoutRequest) (*string, string, error) {
 	return address, hex.EncodeToString(sum[:]), nil
 }
 
-func normalizeCheckoutDetails(details *checkoutDetails) (*string, error) {
-	details.FirstName = strings.TrimSpace(details.FirstName)
-	details.SecondName = strings.TrimSpace(details.SecondName)
-	if details.FirstName == "" || !validCheckoutText(details.FirstName, 100) ||
-		details.SecondName == "" || !validCheckoutText(details.SecondName, 100) {
-		return nil, quoteInputError("Укажите имя и фамилию (до 100 символов)")
+func validateCheckoutContact(first, second string, email *string) (string, string, *string, error) {
+	first, second = strings.TrimSpace(first), strings.TrimSpace(second)
+	if first == "" || !validCheckoutText(first, 100) || second == "" || !validCheckoutText(second, 100) {
+		return "", "", nil, quoteInputError("Укажите имя и фамилию (до 100 символов)")
 	}
 
-	details.Email = trimCheckoutValue(details.Email)
-	if details.Email != nil {
-		email := *details.Email
-		local, domain, found := strings.Cut(email, "@")
-		if !found || len(email) > 254 || strings.ContainsFunc(email, invalidCheckoutEmailRune) ||
+	email = trimCheckoutValue(email)
+	if email != nil {
+		local, domain, found := strings.Cut(*email, "@")
+		if !found || len(*email) > 254 || strings.ContainsFunc(*email, invalidCheckoutEmailRune) ||
 			local == "" || strings.Contains(domain, "@") || !strings.Contains(domain, ".") ||
 			strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") {
-			return nil, quoteInputError("Проверьте адрес электронной почты")
+			return "", "", nil, quoteInputError("Проверьте адрес электронной почты")
 		}
 	}
+	return first, second, email, nil
+}
+
+func normalizeCheckoutDetails(details *checkoutDetails) (*string, error) {
+	first, second, email, err := validateCheckoutContact(details.FirstName, details.SecondName, details.Email)
+	if err != nil {
+		return nil, err
+	}
+	details.FirstName, details.SecondName, details.Email = first, second, email
 
 	if !details.OfferConsent {
 		return nil, quoteInputError("Подтвердите согласие с офертой")

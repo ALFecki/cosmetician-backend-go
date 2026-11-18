@@ -65,7 +65,7 @@ type variant struct {
 const productSelect = `
     SELECT p.id, p.title, p.full_title, p.description, p.image, p.method_of_use, p.composition,
            p.brand_id, p.product_type_id, p.is_price_hidden, p.is_deleted, p.created_at, p.updated_at,
-           b.id, b.title, b.description, b.is_deleted, b.created_at, b.updated_at, b.image, b.manufacturer, b.importer,
+           b.id, b.title, COALESCE(b.description, ''), b.is_deleted, b.created_at, b.updated_at, b.image, b.manufacturer, b.importer,
            t.id, t.title, t.description, t.created_at, t.updated_at
     FROM product p
     JOIN brand b ON p.brand_id = b.id
@@ -133,7 +133,7 @@ func loadProductRelations(ctx context.Context, db database, entries []product) e
 		Owner pgtype.UUID
 		catalogEntry
 	}](ctx, db, `
-        SELECT j.product_id, c.id, c.title, c.description, c.is_deleted, c.created_at, c.updated_at
+        SELECT j.product_id, c.id, c.title, COALESCE(c.description, ''), c.is_deleted, c.created_at, c.updated_at
         FROM category c JOIN product_category j ON j.category_id = c.id
         WHERE j.product_id = ANY($1) AND c.is_deleted IS NOT TRUE
     `, ids)

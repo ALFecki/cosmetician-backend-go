@@ -47,15 +47,23 @@ func (limiter *guestOrderLimiter) Close() error {
 
 func (limiter *guestOrderLimiter) allow(ctx context.Context, guestID uuid.UUID, request *http.Request) error {
 	sessionKey := "guest-checkout:orders:session:" + guestID.String()
-	if err := limiter.reserve(ctx, sessionKey, 5); err != nil {
+	if err := limiter.reserve(ctx, sessionKey, 5, guestOrderLimitTTL); err != nil {
 		return err
 	}
 	addressKey := "guest-checkout:orders:ip:" + guestCheckoutIP(request, limiter.trustedProxy)
-	return limiter.reserve(ctx, addressKey, 20)
+	return limiter.reserve(ctx, addressKey, 20, guestOrderLimitTTL)
 }
 
-func (limiter *guestOrderLimiter) reserve(ctx context.Context, key string, maximum int64) error {
-	count, err := guestOrderCounter.Run(ctx, limiter.client, []string{key}, guestOrderLimitTTL).Int64()
+func (limiter *guestOrderLimiter) allowSession(ctx context.Context, request *http.Request) error {
+	ip := guestCheckoutIP(request, limiter.trustedProxy)
+	if err := limiter.reserve(ctx, "guest-checkout:sessions:hour:"+ip, 20, 3600); err != nil {
+		return err
+	}
+	return limiter.reserve(ctx, "guest-checkout:sessions:day:"+ip, 50, 86400)
+}
+
+func (limiter *guestOrderLimiter) reserve(ctx context.Context, key string, maximum, ttl int64) error {
+	count, err := guestOrderCounter.Run(ctx, limiter.client, []string{key}, ttl).Int64()
 	switch {
 	case err != nil:
 		return cartRequestError{http.StatusServiceUnavailable, "Оформление временно недоступно. Попробуйте позже"}
