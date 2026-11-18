@@ -19,6 +19,7 @@ import (
 type accountAuth struct {
 	db            database
 	cartDB        cartDatabase
+	bannerDB      cartDatabase
 	confirmation  *checkoutConfirmation
 	payments      *orderPayments
 	key           []byte

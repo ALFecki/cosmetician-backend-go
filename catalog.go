@@ -226,27 +226,16 @@ func listCatalog(ctx context.Context, db database, resource catalogResource, que
 	return result, rows.Err()
 }
 
-func listBanners(ctx context.Context, db database) ([]banner, error) {
-	const query = `
-        SELECT id, title, subtitle, image, button_text, button_link, sort_order, is_active, created_at, updated_at
-        FROM banner
-        WHERE is_active
-        ORDER BY sort_order, id
-    `
-	rows, err := db.Query(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	result := make([]banner, 0)
-	for rows.Next() {
-		var value banner
-		err := rows.Scan(&value.ID, &value.Title, &value.Subtitle, &value.Image, &value.ButtonText, &value.ButtonLink,
-			&value.SortOrder, &value.IsActive, &value.CreatedAt, &value.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, value)
-	}
-	return result, rows.Err()
+const bannerColumns = "id, title, subtitle, image, button_text, button_link, sort_order, is_active, created_at, updated_at"
+
+func listBanners(ctx context.Context, db database, includeHidden bool) ([]banner, error) {
+	return queryStructs[banner](ctx, db, "SELECT "+bannerColumns+
+		" FROM banner WHERE $1 OR is_active ORDER BY sort_order, id", includeHidden)
+}
+
+func scanBanner(row pgx.Row) (banner, error) {
+	var value banner
+	err := row.Scan(&value.ID, &value.Title, &value.Subtitle, &value.Image, &value.ButtonText,
+		&value.ButtonLink, &value.SortOrder, &value.IsActive, &value.CreatedAt, &value.UpdatedAt)
+	return value, err
 }
