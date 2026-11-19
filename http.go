@@ -32,7 +32,7 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 	mux := http.NewServeMux()
 	registerOperations(mux, db, accounts)
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
-		entries, err := listBanners(r.Context(), db, false)
+		entries, err := listBanners(r.Context(), db, false, r.URL.Query().Get("home") == "true")
 		if err != nil {
 			databaseFailure(w, "list banners", err)
 			return

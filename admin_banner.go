@@ -14,10 +14,33 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const adminBannerRoute = "/api/admin/banner"
+const homeBannerID = "00000000-0000-4000-8000-000000000000"
+
+var defaultHomeBanner = banner{
+	ID:         pgtype.UUID{Bytes: uuid.MustParse(homeBannerID), Valid: true},
+	Title:      "Внимание к коже.\nЗабота о себе.",
+	Subtitle:   "Профессиональная косметика и помощь косметолога — чтобы найти уход, который подходит именно вам.",
+	Image:      "assets/images/hero-still-life.jpg",
+	ButtonText: "Найти свой уход",
+	ButtonLink: "/products",
+	IsActive:   true,
+}
+
+func ensureHomeBanner(ctx context.Context, tx pgx.Tx) error {
+	entry := defaultHomeBanner
+	_, err := tx.Exec(ctx, `INSERT INTO banner
+		(id, title, subtitle, image, button_text, button_link, sort_order, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (id) DO NOTHING`, entry.ID, entry.Title, entry.Subtitle,
+		entry.Image, entry.ButtonText, entry.ButtonLink, entry.SortOrder, entry.IsActive)
+	return err
+}
 
 type bannerInput struct {
 	Title      *string `json:"title"`
@@ -56,7 +79,7 @@ func (auth *accountAuth) requireModerator(next http.HandlerFunc) http.HandlerFun
 }
 
 func (auth *accountAuth) adminBannerList(w http.ResponseWriter, r *http.Request) {
-	records, err := listBanners(r.Context(), auth.db, true)
+	records, err := listBanners(r.Context(), auth.db, true, true)
 	if err != nil {
 		writeBannerError(w, err)
 		return
@@ -70,6 +93,9 @@ func (auth *accountAuth) adminBannerDetail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	entry, err := scanBanner(auth.db.QueryRow(r.Context(), "SELECT "+bannerColumns+" FROM banner WHERE id = $1", id))
+	if id == defaultHomeBanner.ID && errors.Is(err, pgx.ErrNoRows) {
+		entry, err = defaultHomeBanner, nil
+	}
 	writeBannerResult(w, entry, err)
 }
 
@@ -155,6 +181,11 @@ func (auth *accountAuth) saveAdminBanner(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	err := pgx.BeginTxFunc(ctx, auth.bannerDB, pgx.TxOptions{AccessMode: pgx.ReadWrite}, func(tx pgx.Tx) error {
+		if id == defaultHomeBanner.ID {
+			if err := ensureHomeBanner(ctx, tx); err != nil {
+				return err
+			}
+		}
 		entry, err := scanBanner(tx.QueryRow(ctx, "SELECT "+bannerColumns+" FROM banner WHERE id = $1 FOR UPDATE", id))
 		if err != nil {
 			return err
@@ -175,6 +206,10 @@ func (auth *accountAuth) saveAdminBanner(w http.ResponseWriter, r *http.Request)
 func (auth *accountAuth) deleteAdminBanner(w http.ResponseWriter, r *http.Request) {
 	id, ok := requestID(w, r)
 	if !ok {
+		return
+	}
+	if id == defaultHomeBanner.ID {
+		writeText(w, http.StatusConflict, "Приветственный баннер можно скрыть в настройках")
 		return
 	}
 	ctx := r.Context()
