@@ -59,9 +59,10 @@ func TestAdminBannerContract(t *testing.T) {
 	list := newCartRequest(t, handler, http.MethodGet, adminBannerPath+"?limit=1&includeDeleted=false", nil, admin)
 	var banners listResponse[banner]
 	readOrderHistory(t, list, &banners)
-	if banners.Status != "success" || banners.Length != 4 || banners.Page != nil || banners.Limit != nil ||
-		banners.Data[0].ID.String() != hiddenTestBanner || list.Header().Get("Cache-Control") != "no-store" {
-		t.Fatal("admin list differs from Rust: expected all banners sorted by order and ID")
+	if banners.Status != "success" || banners.Length != 5 || banners.Page != nil || banners.Limit != nil ||
+		banners.Data[0].ID != defaultHomeBanner.ID || banners.Data[1].ID.String() != hiddenTestBanner ||
+		list.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("expected the welcome and existing admin banners sorted by order and ID")
 	}
 	public := func() listResponse[banner] {
 		t.Helper()
@@ -181,4 +182,63 @@ func bannerRawRequest(t *testing.T, handler http.Handler, method, path, body str
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, r)
 	return w
+}
+
+func TestEditableHomeBanner(t *testing.T) {
+	pool := testCartDatabase(t)
+	heroID := "00000000-0000-4000-8000-000000000000"
+	key := []byte("test-only")
+	handler := newHandler(pool, nil, &accountAuth{db: pool, bannerDB: pool, key: key}, false)
+	admin := profileCookie(t, key, testAdminID, true, false, false)
+
+	var list listResponse[banner]
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, adminBannerPath, nil, admin), &list)
+	if list.Length != 5 || list.Data[0].ID.String() != heroID || !list.Data[0].IsActive ||
+		list.Data[0].Image != "assets/images/hero-still-life.jpg" {
+		t.Fatalf("expected the default home banner before the existing admin records: %+v", list.Data)
+	}
+
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, "/api/banner", nil, nil), &list)
+	if list.Length != 3 {
+		t.Fatal("the legacy carousel would show the welcome banner twice")
+	}
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, "/api/banner?home=true", nil, nil), &list)
+	if list.Length != 4 || list.Data[0].ID.String() != heroID {
+		t.Fatal("expected the welcome banner exactly once at its saved position")
+	}
+
+	path := adminBannerPath + "/" + heroID
+	var detail struct {
+		Data banner
+	}
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, path, nil, admin), &detail)
+	if detail.Data.ID.String() != heroID || detail.Data.Title != "Внимание к коже.\nЗабота о себе." {
+		t.Fatal("default welcome banner could not be loaded for editing")
+	}
+	var stored int
+	if err := pool.QueryRow(t.Context(), "SELECT count(*) FROM banner WHERE id = $1", heroID).Scan(&stored); err != nil || stored != 0 {
+		t.Fatalf("loading the default changed stored banners: count=%d err=%v", stored, err)
+	}
+	assertCartStatus(t, bannerRawRequest(t, handler, http.MethodPatch, path, `{"sortOrder":-1}`, admin, "fixture-csrf"), http.StatusBadRequest)
+	if err := pool.QueryRow(t.Context(), "SELECT count(*) FROM banner WHERE id = $1", heroID).Scan(&stored); err != nil || stored != 0 {
+		t.Fatalf("invalid first edit changed stored banners: count=%d err=%v", stored, err)
+	}
+
+	edit := `{"title":"Внимание к коже.\nНовый акцент.","subtitle":"Новый текст","image":"/images/new.jpg","buttonText":"К товарам","buttonLink":"/products?new=true","sortOrder":100,"isActive":false}`
+	assertCartStatus(t, bannerRawRequest(t, handler, http.MethodPatch, path, edit, admin, "fixture-csrf"), http.StatusOK)
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, "/api/banner?home=true", nil, nil), &list)
+	if list.Length != 3 {
+		t.Fatal("hidden welcome banner leaked into the public feed")
+	}
+	assertCartStatus(t, bannerRawRequest(t, handler, http.MethodPatch, path, `{"isActive":true}`, admin, "fixture-csrf"), http.StatusOK)
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodGet, "/api/banner?home=true", nil, nil), &list)
+	if list.Length != 4 {
+		t.Fatal("republished welcome banner did not return exactly once")
+	}
+	updated := list.Data[len(list.Data)-1]
+	if updated.ID.String() != heroID || updated.Title != "Внимание к коже.\nНовый акцент." || updated.Subtitle != "Новый текст" ||
+		updated.Image != "/images/new.jpg" || updated.ButtonText != "К товарам" || updated.ButtonLink != "/products?new=true" {
+		t.Fatalf("welcome banner edits were lost: %+v", updated)
+	}
+	assertCartStatus(t, newCartRequest(t, handler, http.MethodDelete, path, nil, admin), http.StatusConflict)
 }

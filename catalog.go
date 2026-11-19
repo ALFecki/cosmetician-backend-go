@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -228,9 +229,22 @@ func listCatalog(ctx context.Context, db database, resource catalogResource, que
 
 const bannerColumns = "id, title, subtitle, image, button_text, button_link, sort_order, is_active, created_at, updated_at"
 
-func listBanners(ctx context.Context, db database, includeHidden bool) ([]banner, error) {
-	return queryStructs[banner](ctx, db, "SELECT "+bannerColumns+
-		" FROM banner WHERE $1 OR is_active ORDER BY sort_order, id", includeHidden)
+func listBanners(ctx context.Context, db database, includeHidden, includeHome bool) ([]banner, error) {
+	entries, err := queryStructs[banner](ctx, db, "SELECT "+bannerColumns+
+		" FROM banner WHERE ($1 OR is_active OR id = $3) AND ($2 OR id <> $3) ORDER BY sort_order, id",
+		includeHidden, includeHome, defaultHomeBanner.ID)
+	if err != nil || !includeHome {
+		return entries, err
+	}
+	for i, entry := range entries {
+		if entry.ID == defaultHomeBanner.ID {
+			if !includeHidden && !entry.IsActive {
+				return slices.Delete(entries, i, i+1), nil
+			}
+			return entries, nil
+		}
+	}
+	return append([]banner{defaultHomeBanner}, entries...), nil
 }
 
 func scanBanner(row pgx.Row) (banner, error) {
