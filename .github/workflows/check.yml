@@ -5,6 +5,11 @@ on:
   push:
     branches:
       - main
+  workflow_call:
+    inputs:
+      revision:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -36,9 +41,27 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
+      - name: Validate release revision
+        if: contains(toJSON(inputs), '"revision"')
+        id: release
+        env:
+          REVISION: ${{ inputs.revision }}
+        run: |
+          if [[ ! "$REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::revision must be a full lowercase commit SHA'
+            exit 1
+          fi
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: ${{ steps.release.outputs.revision && 'ALFecki/cosmetician-backend-go' || github.repository }}
+          ref: ${{ steps.release.outputs.revision }}
           persist-credentials: false
+      - name: Verify release source
+        if: steps.release.outputs.revision
+        env:
+          REVISION: ${{ steps.release.outputs.revision }}
+        run: test "$(git rev-parse HEAD)" = "$REVISION"
       - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: go.mod
@@ -52,4 +75,106 @@ jobs:
       - name: Test legacy cart importer
         run: python3 -B -m unittest discover -s scripts -p test_legacy_carts.py
       - name: Build Linux image
-        run: docker build --platform linux/amd64 -t cosmetician-backend-go:ci .
+        run: |
+          revision="$(git rev-parse HEAD)"
+          docker build --platform linux/amd64 \
+            --label "org.opencontainers.image.revision=$revision" \
+            --label by.skviderm.backend-language=go \
+            --label by.skviderm.redis-preserved=true \
+            -t "skviderm-backend-go:$revision" .
+      - name: Smoke-test the release image
+        if: steps.release.outputs.revision
+        shell: bash
+        env:
+          REVISION: ${{ steps.release.outputs.revision }}
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          REDIS_CONTAINER: ${{ job.services.redis.id }}
+          SERVICE_NETWORK: ${{ job.services.postgres.network }}
+        run: |
+          image="skviderm-backend-go:$REVISION"
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" = linux/amd64
+          docker exec "$POSTGRES_CONTAINER" createdb -U postgres skviderm_release_test
+          sed -e 's/^CREATE TEMP TABLE/CREATE TABLE/' -e 's/pg_temp\.//g' \
+            testdata/{account,catalog,product}_schema.sql testdata/cart_storage_schema.sql \
+            migrations/*.sql testdata/{catalog,product}_rows.sql |
+            docker exec -i "$POSTGRES_CONTAINER" psql -X -U postgres -d skviderm_release_test \
+              -v ON_ERROR_STOP=1 --single-transaction -f - >/dev/null
+          docker exec "$REDIS_CONTAINER" redis-cli -n 15 SET maintenance_mode enabled EX 300
+          runtime="$(docker run -d --platform linux/amd64 --network "$SERVICE_NETWORK" -p 127.0.0.1::8000 \
+            -e 'DATABASE_URL=postgres://postgres:test-only@postgres:5432/skviderm_release_test?sslmode=disable' \
+            -e REDIS_URL=redis://redis:6379/15 -e JWT_SECRET=test-only -e CLIENT_URL=https://shop.example.invalid \
+            -e MINIO_ENDPOINT=http://127.0.0.1:9 -e MINIO_ACCESS_KEY=test-only -e MINIO_SECRET_KEY=test-only-secret \
+            -e MINIO_BUCKET=test-bucket -e EMAIL_LOGIN=test@example.invalid -e EMAIL_PASSWORD=test-only \
+            -e ACQUIRING_URL=https://bank.example.invalid/register \
+            -e ACQUIRING_ORDER_STATUS_URL=https://bank.example.invalid/status \
+            -e ACQUIRING_USERNAME=test-only -e ACQUIRING_PASSWORD=test-only \
+            -e FULL_BACKEND_ENABLED=true -e PHONE_CHECKOUT_ENABLED=true -e GUEST_CHECKOUT_ENABLED=true \
+            -e CART_STORAGE_ENABLED=true -e ORDER_CONFIRMATION_ENABLED=true -e ORDER_PAYMENTS_ENABLED=true \
+            -e ADMIN_BANNERS_ENABLED=true -e PROMOTION_MANAGEMENT_ENABLED=true "$image")"
+          trap 'docker logs "$runtime"; docker rm -fv "$runtime" >/dev/null' EXIT
+          address="http://$(docker port "$runtime" 8000/tcp)"
+          get() { curl -fsS --max-time 3 "$address$1"; }
+          ready=false
+          for _ in {1..30}; do
+            if get /api/health/ready 2>/dev/null | jq -e '.status == "ready"' >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = true
+          get '/api/banner?home=true' | jq -e '
+            .status == "success" and
+            any(.data[]; .id == "00000000-0000-4000-8000-000000000304")'
+          get '/api/product?sort=title' | jq -e '
+            .status == "success" and .length == 3 and
+            .data[0].id == "00000000-0000-4000-8000-000000000501"'
+          get /api/maintenance/status | jq -e '.enabled and .ttl > 0'
+          docker kill --signal=SIGTERM "$runtime" >/dev/null
+          test "$(timeout 60 docker wait "$runtime")" = 0
+          test "$(docker exec "$REDIS_CONTAINER" redis-cli -n 15 GET maintenance_mode)" = enabled
+          ttl="$(docker exec "$REDIS_CONTAINER" redis-cli -n 15 TTL maintenance_mode)"
+          test "$ttl" -gt 0 && test "$ttl" -le 300
+      - name: Package the verified release image
+        if: steps.release.outputs.revision
+        shell: bash
+        env:
+          REVISION: ${{ steps.release.outputs.revision }}
+        run: |
+          destination="$RUNNER_TEMP/backend-release"
+          mkdir "$destination"
+          docker save "skviderm-backend-go:$REVISION" | gzip > "$destination/image.tar.gz"
+          python3 - "$destination" <<'PY'
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          def digest(path):
+              with path.open("rb") as stream:
+                  return hashlib.file_digest(stream, "sha256").hexdigest()
+
+          destination = Path(sys.argv[1])
+          migrations = {path.name: digest(path) for path in sorted(Path("migrations").glob("*.sql"))}
+          (destination / "migrations.json").write_text(json.dumps(migrations, indent=2) + "\n")
+          manifest = {
+              "schema": 1,
+              "component": "backend",
+              "backend_language": "go",
+              "repository": "ALFecki/cosmetician-backend-go",
+              "commit": os.environ["REVISION"],
+              "build_source": "github-actions",
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "container_verified": True,
+              "files": {name: digest(destination / name) for name in ("image.tar.gz", "migrations.json")},
+          }
+          (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.release.outputs.revision
+        with:
+          name: backend-${{ steps.release.outputs.revision }}
+          path: ${{ runner.temp }}/backend-release/
+          if-no-files-found: error
+          overwrite: true
