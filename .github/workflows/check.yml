@@ -1,10 +1,11 @@
-name: Backend checks
+name: Backend CI/CD
 
 on:
   pull_request:
   push:
     branches:
       - main
+  workflow_dispatch:
   workflow_call:
     inputs:
       revision:
@@ -15,8 +16,61 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  build:
+    name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      revision: ${{ steps.image.outputs.revision }}
+    steps:
+      - name: Validate release revision
+        if: contains(toJSON(inputs), '"revision"')
+        id: release
+        env:
+          REVISION: ${{ inputs.revision }}
+        run: |
+          if [[ ! "$REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::revision must be a full lowercase commit SHA'
+            exit 1
+          fi
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.release.outputs.revision && 'ALFecki/cosmetician-backend-go' || github.repository }}
+          ref: ${{ steps.release.outputs.revision }}
+          persist-credentials: false
+      - name: Build Linux image
+        id: image
+        shell: bash
+        env:
+          RELEASE_REVISION: ${{ steps.release.outputs.revision }}
+        run: |
+          revision="$(git rev-parse HEAD)"
+          if [[ -n "$RELEASE_REVISION" ]]; then
+            test "$revision" = "$RELEASE_REVISION"
+          fi
+          docker build --platform linux/amd64 \
+            --label "org.opencontainers.image.revision=$revision" \
+            --label by.skviderm.backend-language=go \
+            --label by.skviderm.redis-preserved=true \
+            -t "skviderm-backend-go:$revision" .
+          docker save "skviderm-backend-go:$revision" | gzip > "$RUNNER_TEMP/image.tar.gz"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-image-${{ steps.image.outputs.revision }}
+          path: ${{ runner.temp }}/image.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  test:
+    name: Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      REVISION: ${{ needs.build.outputs.revision }}
     services:
       postgres:
         image: postgres:17.6-bookworm
@@ -41,26 +95,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - name: Validate release revision
-        if: contains(toJSON(inputs), '"revision"')
-        id: release
-        env:
-          REVISION: ${{ inputs.revision }}
-        run: |
-          if [[ ! "$REVISION" =~ ^[0-9a-f]{40}$ ]]; then
-            echo '::error::revision must be a full lowercase commit SHA'
-            exit 1
-          fi
-          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ steps.release.outputs.revision && 'ALFecki/cosmetician-backend-go' || github.repository }}
-          ref: ${{ steps.release.outputs.revision }}
+          repository: ${{ inputs.revision && 'ALFecki/cosmetician-backend-go' || github.repository }}
+          ref: ${{ env.REVISION }}
           persist-credentials: false
       - name: Verify release source
-        if: steps.release.outputs.revision
-        env:
-          REVISION: ${{ steps.release.outputs.revision }}
         run: test "$(git rev-parse HEAD)" = "$REVISION"
       - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
@@ -72,27 +112,27 @@ jobs:
           SKVIDERM_TEST_DATABASE_URL: postgres://postgres:test-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/skviderm_catalog_test?sslmode=disable
           SKVIDERM_TEST_REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports['6379'] }}/0
         run: go test -count=1 -v ./...
-      - name: Test legacy cart importer
-        run: python3 -B -m unittest discover -s scripts -p test_legacy_carts.py
-      - name: Build Linux image
-        run: |
-          revision="$(git rev-parse HEAD)"
-          docker build --platform linux/amd64 \
-            --label "org.opencontainers.image.revision=$revision" \
-            --label by.skviderm.backend-language=go \
-            --label by.skviderm.redis-preserved=true \
-            -t "skviderm-backend-go:$revision" .
+      - name: Test Python scripts
+        run: python3 -B -m unittest discover -s scripts -p 'test_*.py'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: backend-image-${{ env.REVISION }}
+          path: ${{ runner.temp }}/backend-release
       - name: Smoke-test the release image
-        if: steps.release.outputs.revision
         shell: bash
         env:
-          REVISION: ${{ steps.release.outputs.revision }}
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           REDIS_CONTAINER: ${{ job.services.redis.id }}
           SERVICE_NETWORK: ${{ job.services.postgres.network }}
         run: |
           image="skviderm-backend-go:$REVISION"
+          docker load --input "$RUNNER_TEMP/backend-release/image.tar.gz"
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" = linux/amd64
+          docker image inspect "$image" | jq -e --arg revision "$REVISION" '
+            .[0].Config.Labels |
+            .["org.opencontainers.image.revision"] == $revision and
+            .["by.skviderm.backend-language"] == "go" and
+            .["by.skviderm.redis-preserved"] == "true"' >/dev/null
           docker exec "$POSTGRES_CONTAINER" createdb -U postgres skviderm_release_test
           sed -e 's/^CREATE TEMP TABLE/CREATE TABLE/' -e 's/pg_temp\.//g' \
             testdata/{account,catalog,product}_schema.sql testdata/cart_storage_schema.sql \
@@ -136,14 +176,9 @@ jobs:
           ttl="$(docker exec "$REDIS_CONTAINER" redis-cli -n 15 TTL maintenance_mode)"
           test "$ttl" -gt 0 && test "$ttl" -le 300
       - name: Package the verified release image
-        if: steps.release.outputs.revision
         shell: bash
-        env:
-          REVISION: ${{ steps.release.outputs.revision }}
         run: |
           destination="$RUNNER_TEMP/backend-release"
-          mkdir "$destination"
-          docker save "skviderm-backend-go:$REVISION" | gzip > "$destination/image.tar.gz"
           python3 - "$destination" <<'PY'
           import hashlib
           import json
@@ -172,9 +207,52 @@ jobs:
           (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: steps.release.outputs.revision
         with:
-          name: backend-${{ steps.release.outputs.revision }}
+          name: backend-${{ env.REVISION }}
           path: ${{ runner.temp }}/backend-release/
           if-no-files-found: error
+          compression-level: 0
           overwrite: true
+
+  deploy:
+    name: Deploy production
+    needs: test
+    if: >-
+      github.repository == 'ALFecki/cosmetician-backend-go' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      !contains(toJSON(inputs), '"revision"')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://skviderm.by
+    env:
+      REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.REVISION }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: backend-${{ env.REVISION }}
+          path: release/backend
+      - name: Verify the tested commit is still on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$current" != "$REVISION" ]]; then
+            echo "::error::main moved to $current while waiting to deploy $REVISION"
+            exit 1
+          fi
+      - name: Deploy the verified Go backend
+        env:
+          SKVIDERM_DEPLOY_KEY: ${{ secrets.SKVIDERM_DEPLOY_KEY }}
+          SKVIDERM_DEPLOY_HOST: ${{ vars.SKVIDERM_DEPLOY_HOST }}
+          SKVIDERM_DEPLOY_HOST_KEY: ${{ vars.SKVIDERM_DEPLOY_HOST_KEY }}
+        run: python3 -B scripts/deploy_production.py release "$REVISION" "$GITHUB_RUN_ID"

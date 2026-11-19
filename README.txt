@@ -40,6 +40,19 @@ To build the Linux production architecture on another machine:
 
     docker build --platform linux/amd64 -t cosmetician-backend-go .
 
+Production deployment
+---------------------
+Actions runs Build and Tests for pull requests and pushes to main. On a main
+run, Deploy production waits for approval in the production environment.
+Open the latest Backend CI/CD run, choose Review deployments, select
+production, then click Approve and deploy. Run workflow on main creates a
+fresh run when needed.
+
+The job deploys the Go image verified by Tests. The current frontend stays in
+service. The VPS creates an encrypted backup and uses its normal rollback
+path. For a frontend and backend release together, use Deploy production
+in the frontend repository.
+
 Account cart storage
 --------------------
 Apply migrations/0001_cart_add_operation.sql. Enable CART_STORAGE_ENABLED
