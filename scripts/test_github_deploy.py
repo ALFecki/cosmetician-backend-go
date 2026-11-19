@@ -5,6 +5,7 @@ import re
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -43,7 +44,7 @@ def backend_artifacts(*, commit=BACKEND, run_id=RUN_ID):
     )
 
 
-def frontend_artifacts():
+def frontend_artifacts(*, commit=FRONTEND, run_id=RUN_ID):
     archive = b"frontend archive"
     return (
         json.dumps({
@@ -51,8 +52,8 @@ def frontend_artifacts():
             "component": "frontend",
             "repository": "ALFecki/cosmetician-frontend",
             "build_source": "github-actions",
-            "commit": FRONTEND,
-            "run_id": RUN_ID,
+            "commit": commit,
+            "run_id": run_id,
             "files": {"frontend.tar.gz": hashlib.sha256(archive).hexdigest()},
         }).encode(),
         archive,
@@ -76,6 +77,11 @@ def write_json(path, value):
     path.write_text(json.dumps(value))
 
 
+def require_safe_release(release):
+    if release.get("safe_redis") is not True:
+        raise ValueError("Refusing to restart legacy release that may flush Redis")
+
+
 class GitHubDeploymentGatewayTest(unittest.TestCase):
     def setUp(self):
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -84,16 +90,18 @@ class GitHubDeploymentGatewayTest(unittest.TestCase):
         self.release = self.root / "incoming" / RELEASE
         self.result = self.root / "results" / f"{RELEASE}.json"
         self.state = self.root / "state.json"
-        write_json(self.state, {"current": {"backend_language": "go"}})
+        write_json(self.state, {"current": {"backend_language": "go", "safe_redis": True}})
         self.server = SimpleNamespace(
             RELEASE_ID=re.compile(r"[0-9]{8}T[0-9]{6}Z(?:-[a-f0-9]{8})?"),
             load_manifest=load_manifest,
+            require_safe_release=require_safe_release,
             write_json=write_json,
             run=Mock(),
         )
         self.enterContext(patch.object(github_deploy, "server", self.server))
         self.backend_submit = f"submit-backend {RELEASE} {BACKEND} {RUN_ID}"
         self.paired_submit = f"submit {RELEASE} {BACKEND} {FRONTEND} {RUN_ID}"
+        self.frontend_submit = f"submit-frontend {RELEASE} {FRONTEND} {RUN_ID}"
         self.status = f"status {RELEASE}"
 
     def dispatch(self, command, data=b"", *, backend_only=False):
@@ -101,13 +109,44 @@ class GitHubDeploymentGatewayTest(unittest.TestCase):
             return github_deploy.dispatch(command, io.BytesIO(data), self.root, backend_only=True)
         return github_deploy.dispatch(command, io.BytesIO(data), self.root)
 
-    def write_success(self, *, frontend=FRONTEND, phase="complete", backup=BACKUP):
+    def run_frontend_worker(self, operations, *, on_lock=None):
+        locked = False
+
+        @contextmanager
+        def operation_lock(root):
+            nonlocal locked
+            self.assertEqual(root, self.root)
+            if on_lock:
+                on_lock()
+            locked = True
+            try:
+                yield
+            finally:
+                locked = False
+
+        def load_operations(root):
+            self.assertEqual(root, self.root)
+            self.assertTrue(locked)
+            operations.state = json.loads(self.state.read_text())
+            return operations
+
+        with (
+            patch.object(github_deploy, "ROOT", self.root),
+            patch.object(sys, "argv", ["github_deploy.py", "--apply-frontend", RELEASE]),
+            patch.object(github_deploy.os, "geteuid", return_value=0),
+            patch.object(github_deploy.os, "umask"),
+            patch.object(self.server, "operation_lock", operation_lock, create=True),
+            patch.object(self.server, "Operations", load_operations, create=True),
+        ):
+            github_deploy.main()
+
+    def write_success(self, *, backend=BACKEND, frontend=FRONTEND, phase="complete", backup=BACKUP):
         write_json(self.result, {
             "status": "success",
             "state": {
                 "current": {
                     "id": RELEASE, "backend_language": "go",
-                    "backend_commit": BACKEND, "frontend_commit": frontend,
+                    "backend_commit": backend, "frontend_commit": frontend,
                 },
                 "operation": {
                     "id": RELEASE, "command": "deploy", "status": "success",
@@ -167,8 +206,11 @@ class GitHubDeploymentGatewayTest(unittest.TestCase):
         for command, backend_only in (
             (self.backend_submit, False),
             (self.paired_submit, True),
+            (self.frontend_submit, True),
             (f"--backend-only {self.backend_submit}", False),
             (f"submit-backend {RELEASE} {BACKEND} {FRONTEND} {RUN_ID}", True),
+            (f"submit-frontend {RELEASE} {BACKEND} {FRONTEND} {RUN_ID}", False),
+            (f"--apply-frontend {RELEASE}", False),
         ):
             with self.subTest(command=command, backend_only=backend_only):
                 with self.assertRaisesRegex(ValueError, "Invalid GitHub deployment command"):
@@ -242,6 +284,116 @@ class GitHubDeploymentGatewayTest(unittest.TestCase):
         })
         with self.assertRaises(ValueError):
             self.dispatch(self.status, backend_only=True)
+
+    def test_frontend_submit_stages_two_frames_and_cleans_just_the_frontend_archive(self):
+        artifacts = frontend_artifacts()
+        self.assertEqual(
+            self.dispatch(self.frontend_submit, frames(*artifacts)),
+            {"id": RELEASE, "status": "running"},
+        )
+        self.assertEqual(json.loads((self.release / "request.json").read_text()), {
+            "id": RELEASE,
+            "backend_language": "go",
+            "frontend_commit": FRONTEND,
+            "github_actions_run_id": RUN_ID,
+        })
+        self.assertFalse((self.release / "backend").exists())
+        for name, artifact in zip(("manifest.json", "frontend.tar.gz"), artifacts):
+            self.assertEqual((self.release / "frontend" / name).read_bytes(), artifact)
+        args = self.server.run.call_args.args[0]
+        self.assertIn(
+            f"--property=ExecStopPost=/usr/bin/rm -f -- {self.release}/frontend/frontend.tar.gz",
+            args,
+        )
+        self.assertEqual(args[-4:], [
+            "/usr/bin/python3", str(self.root / "github_deploy.py"), "--apply-frontend", RELEASE,
+        ])
+
+    def test_frontend_submit_rejects_invalid_payloads(self):
+        payload = frames(*frontend_artifacts())
+        for data, error in (
+            (payload[:-1], "Truncated artifact frame"),
+            (payload + frames(*backend_artifacts()), "Extra artifact input"),
+            (frames(*frontend_artifacts(run_id="124")), "Unexpected GitHub Actions provenance"),
+            (frames(*frontend_artifacts(commit="c" * 40)), "does not match"),
+        ):
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, error):
+                self.dispatch(self.frontend_submit, data)
+        self.assertFalse(self.release.exists())
+        self.server.run.assert_not_called()
+
+    def test_frontend_submit_requires_a_safe_go_runtime(self):
+        for release, error in (
+            ({"backend_language": "rust", "safe_redis": True}, "requires a current Go release"),
+            ({"backend_language": "go", "safe_redis": False}, "may flush Redis"),
+        ):
+            with self.subTest(release=release), self.assertRaisesRegex(ValueError, error):
+                write_json(self.state, {"current": release})
+                self.dispatch(self.frontend_submit, frames(*frontend_artifacts()))
+        self.assertFalse(self.release.exists())
+        self.server.run.assert_not_called()
+
+    def test_frontend_worker_rejects_a_rollback_after_submission(self):
+        self.dispatch(self.frontend_submit, frames(*frontend_artifacts()))
+        operations = Mock()
+
+        def rollback():
+            write_json(self.state, {"current": {"backend_language": "rust", "safe_redis": True}})
+
+        with self.assertRaisesRegex(ValueError, "requires a current Go release"):
+            self.run_frontend_worker(operations, on_lock=rollback)
+        operations.deploy.assert_not_called()
+        self.assertEqual(self.dispatch(self.status), {"id": RELEASE, "status": "failed"})
+
+    def test_frontend_worker_deploys_on_safe_go_and_publishes_the_server_result(self):
+        self.dispatch(self.frontend_submit, frames(*frontend_artifacts()))
+        operations = Mock()
+        self.write_success()
+        result = json.loads(self.result.read_text())
+        self.result.unlink()
+
+        def deploy(request):
+            operations.ensure_idle.assert_called_once_with()
+            self.assertEqual(request, {
+                "id": RELEASE, "backend_language": "go",
+                "frontend_commit": FRONTEND, "github_actions_run_id": RUN_ID,
+            })
+            operations.state = result["state"]
+
+        operations.deploy.side_effect = deploy
+        self.run_frontend_worker(operations)
+        operations.deploy.assert_called_once()
+        self.assertEqual(json.loads(self.result.read_text()), result)
+
+    def test_frontend_worker_rejects_a_request_with_backend_commit(self):
+        self.dispatch(self.paired_submit, frames(*backend_artifacts(), *frontend_artifacts()))
+        operations = Mock()
+        with self.assertRaisesRegex(ValueError, "Invalid frontend-only release request"):
+            self.run_frontend_worker(operations)
+        operations.deploy.assert_not_called()
+
+    def test_frontend_status_reports_the_actual_backend_and_hides_it_from_backend_key(self):
+        self.dispatch(self.frontend_submit, frames(*frontend_artifacts()))
+        actual_backend = "c" * 40
+        self.write_success(backend=actual_backend)
+        self.assertEqual(self.dispatch(self.status), {
+            "id": RELEASE, "status": "success", "phase": "complete", "last_backup": BACKUP,
+            "backend_commit": actual_backend, "frontend_commit": FRONTEND,
+        })
+        with self.assertRaisesRegex(ValueError, "Unknown GitHub Actions release"):
+            self.dispatch(self.status, backend_only=True)
+
+    def test_frontend_status_requires_complete_success_metadata(self):
+        self.dispatch(self.frontend_submit, frames(*frontend_artifacts()))
+        for fields in (
+            {"backend": ""},
+            {"frontend": "c" * 40},
+            {"phase": "candidate-ready"},
+            {"backup": "20261119T120002Z"},
+        ):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                self.write_success(**fields)
+                self.dispatch(self.status)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ BACKEND_FRAMES = (
     ("backend/migrations.json", 1024**2),
     ("backend/image.tar.gz", 2 * 1024**3),
 )
-FRAMES = BACKEND_FRAMES + (
+FRONTEND_FRAMES = (
     ("frontend/manifest.json", 64 * 1024),
     ("frontend/frontend.tar.gz", 500 * 1024**2),
 )
@@ -51,27 +51,38 @@ def unit_name(identifier):
     return "skviderm-operation-" + identifier.lower()
 
 
+def check_current_release(current, *, frontend_only):
+    if current.get("backend_language") != "go":
+        raise ValueError("GitHub Actions deployment requires a current Go release")
+    if frontend_only:
+        server.require_safe_release(current)
+
+
 def submit(root, stream, identifier, backend, frontend, run_id):
     incoming = root / "incoming"
     release = incoming / identifier
     result = root / "results" / f"{identifier}.json"
     if any(path.exists() for path in (release, result, root / "releases" / identifier)):
         raise ValueError("Release ID already in use")
-    state = json.loads((root / "state.json").read_text())
-    if state["current"].get("backend_language") != "go":
-        raise ValueError("GitHub Actions deployment requires a current Go release")
+    frontend_only = backend is None
+    current = json.loads((root / "state.json").read_text())["current"]
+    check_current_release(current, frontend_only=frontend_only)
 
-    frames = BACKEND_FRAMES
-    components = [("backend", backend)]
-    archives = [str(release / "backend" / "image.tar.gz")]
+    frames = []
+    components = []
+    archives = []
     request = {
         "id": identifier,
         "backend_language": "go",
-        "backend_commit": backend,
         "github_actions_run_id": run_id,
     }
+    if backend is not None:
+        frames.extend(BACKEND_FRAMES)
+        components.append(("backend", backend))
+        archives.append(str(release / "backend" / "image.tar.gz"))
+        request["backend_commit"] = backend
     if frontend is not None:
-        frames = FRAMES
+        frames.extend(FRONTEND_FRAMES)
         components.append(("frontend", frontend))
         archives.append(str(release / "frontend" / "frontend.tar.gz"))
         request["frontend_commit"] = frontend
@@ -95,6 +106,13 @@ def submit(root, stream, identifier, backend, frontend, run_id):
             if release.exists():
                 raise ValueError("Release ID already in use")
             staging.rename(release)
+            if frontend_only:
+                worker = [str(root / "github_deploy.py"), "--apply-frontend", identifier]
+            else:
+                worker = [
+                    str(root / "server.py"), "deploy", str(release / "request.json"),
+                    "--result", str(result),
+                ]
             server.run([
                 "/usr/bin/systemd-run",
                 "--quiet",
@@ -104,13 +122,41 @@ def submit(root, stream, identifier, backend, frontend, run_id):
                 "--property=Nice=10",
                 "--property=ExecStopPost=/usr/bin/rm -f -- " + " ".join(archives),
                 "/usr/bin/python3",
-                str(root / "server.py"),
-                "deploy",
-                str(release / "request.json"),
-                "--result",
-                str(result),
+                *worker,
             ], timeout=30)
     return {"id": identifier, "status": "running"}
+
+
+def apply_frontend(root, identifier):
+    if not server.RELEASE_ID.fullmatch(identifier):
+        raise ValueError("Invalid release ID")
+    result_path = root / "results" / f"{identifier}.json"
+    result = {"status": "failed"}
+    try:
+        with server.operation_lock(root):
+            operations = server.Operations(root)
+            operations.ensure_idle()
+            check_current_release(operations.state["current"], frontend_only=True)
+            incoming = (root / "incoming").resolve()
+            request_path = (incoming / identifier / "request.json").resolve()
+            if not request_path.is_relative_to(incoming):
+                raise ValueError("Request must be inside incoming directory")
+            request = json.loads(request_path.read_text())
+            if (
+                set(request) != {"id", "backend_language", "frontend_commit", "github_actions_run_id"}
+                or request["id"] != identifier
+                or request["backend_language"] != "go"
+                or not COMMIT.fullmatch(request["frontend_commit"])
+                or not RUN_ID.fullmatch(request["github_actions_run_id"])
+            ):
+                raise ValueError("Invalid frontend-only release request")
+            operations.deploy(request)
+            result.update(status=operations.state["operation"]["status"], state=operations.state)
+    except Exception as exc:
+        result["error"] = str(exc)
+        raise
+    finally:
+        server.write_json(result_path, result)
 
 
 def result_status(result_path, request):
@@ -146,24 +192,29 @@ def result_status(result_path, request):
         reply["last_backup"] = backup
     if status == "success":
         current = state["current"]
+        backend = current.get("backend_commit")
         frontend = current.get("frontend_commit")
+        expected_backend = request.get("backend_commit")
         expected_frontend = request.get("frontend_commit")
         if (
             current.get("id") != identifier
             or current.get("backend_language") != "go"
-            or current.get("backend_commit") != request["backend_commit"]
+            or (expected_backend is not None and backend != expected_backend)
             or (expected_frontend is not None and frontend != expected_frontend)
         ):
             raise ValueError("Result does not match the requested release")
-        if expected_frontend is None and (
-            not isinstance(frontend, str)
-            or not COMMIT.fullmatch(frontend)
-            or "phase" not in reply
-            or "last_backup" not in reply
-        ):
-            raise ValueError("Incomplete backend-only deployment result")
+        if expected_backend is None or expected_frontend is None:
+            component = "frontend" if expected_backend is None else "backend"
+            retained_commit = backend if expected_backend is None else frontend
+            if (
+                not isinstance(retained_commit, str)
+                or not COMMIT.fullmatch(retained_commit)
+                or "phase" not in reply
+                or "last_backup" not in reply
+            ):
+                raise ValueError(f"Incomplete {component}-only deployment result")
         reply.update(
-            backend_commit=request["backend_commit"],
+            backend_commit=backend,
             frontend_commit=frontend,
         )
     return reply
@@ -177,15 +228,18 @@ def status(root, identifier, *, backend_only=False):
         raise ValueError("Unknown GitHub Actions release") from None
     with request_file:
         request = json.load(request_file)
-        paired = "frontend_commit" in request
-        if paired == backend_only:
+        has_frontend = "frontend_commit" in request
+        if has_frontend == backend_only:
             raise ValueError("Unknown GitHub Actions release")
         if (
             request.get("id") != identifier
             or request.get("backend_language") != "go"
             or not RUN_ID.fullmatch(request.get("github_actions_run_id", ""))
-            or not COMMIT.fullmatch(request.get("backend_commit", ""))
-            or (paired and not COMMIT.fullmatch(request["frontend_commit"]))
+            or (
+                (backend_only or "backend_commit" in request)
+                and not COMMIT.fullmatch(request.get("backend_commit", ""))
+            )
+            or (has_frontend and not COMMIT.fullmatch(request["frontend_commit"]))
         ):
             raise ValueError("Invalid GitHub Actions release request")
         try:
@@ -240,6 +294,10 @@ def dispatch(command, stream, root, *, backend_only=False):
             backend, run_id = arguments
             if COMMIT.fullmatch(backend) and RUN_ID.fullmatch(run_id):
                 return submit(root, stream, identifier, backend, None, run_id)
+        if not backend_only and verb == "submit-frontend" and len(arguments) == 2:
+            frontend, run_id = arguments
+            if COMMIT.fullmatch(frontend) and RUN_ID.fullmatch(run_id):
+                return submit(root, stream, identifier, None, frontend, run_id)
         if not backend_only and verb == "submit" and len(arguments) == 3:
             backend, frontend, run_id = arguments
             if (
@@ -257,11 +315,14 @@ def timeout(_signum, _frame):
 
 def main():
     args = sys.argv[1:]
-    if args not in ([], ["--backend-only"]):
-        raise ValueError("Invalid GitHub deployment gateway arguments")
     os.umask(0o077)
     if os.geteuid() != 0:
         raise RuntimeError("GitHub deployment gateway requires root")
+    if args not in ([], ["--backend-only"]):
+        if len(args) != 2 or args[0] != "--apply-frontend":
+            raise ValueError("Invalid GitHub deployment gateway arguments")
+        apply_frontend(ROOT, args[1])
+        return
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(15 * 60)
     reply = dispatch(
