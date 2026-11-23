@@ -137,6 +137,12 @@ func catalogFixture(t *testing.T, schemaAndRows ...string) (context.Context, pgx
 			t.Fatalf("apply %s: %v", file, err)
 		}
 	}
+	if slices.Contains(schemaAndRows, "product_schema.sql") {
+		if _, err := tx.Exec(ctx, `ALTER TABLE product_variant ADD COLUMN price_cents bigint, ADD COLUMN cost_price_cents bigint;
+			UPDATE product_variant SET price_cents = round(price::text::numeric * 100), cost_price_cents = round(cost_price::text::numeric * 100)`); err != nil {
+			t.Fatal(err)
+		}
+	}
 	return ctx, tx
 }
 

@@ -128,13 +128,9 @@ func setVariantPromotionPrices(variants []variant, promos []promotion) {
 }
 
 func setVariantPromotionPrice(entry *variant, promos []promotion) {
-	baseCents, err := checkoutCents(entry.Price)
-	if err != nil {
-		return
-	}
 	if entry.IsDeleted != nil && *entry.IsDeleted {
 		promos = nil
 	}
-	price := bestPromotionPrice(baseCents, entry.ProductID, promos)
+	price := bestPromotionPrice(entry.PriceCents, entry.ProductID, promos)
 	entry.PromotionPrice = &price
 }

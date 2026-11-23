@@ -347,11 +347,11 @@ type promotionSearchProduct struct {
 	PriceCents *int64      `json:"priceCents"`
 }
 
-const promotionSearchSelect = `SELECT p.id, p.title, p.full_title, b.title, v.price
+const promotionSearchSelect = `SELECT p.id, p.title, p.full_title, b.title, v.price_cents
 	FROM product p JOIN brand b ON b.id = p.brand_id
 	LEFT JOIN LATERAL (
-		SELECT min(price) AS price FROM product_variant
-		WHERE product_id = p.id AND is_deleted IS NOT TRUE AND price >= 0
+		SELECT min(price_cents) AS price_cents FROM product_variant
+		WHERE product_id = p.id AND is_deleted IS NOT TRUE
 	) v ON p.is_deleted IS NOT TRUE`
 
 func (auth *accountAuth) adminPromotionProducts(w http.ResponseWriter, r *http.Request) {
@@ -385,7 +385,7 @@ func (auth *accountAuth) adminPromotionProducts(w http.ResponseWriter, r *http.R
 		Title      string
 		FullTitle  string
 		BrandTitle string
-		Price      *float32
+		PriceCents *int64
 	}](r.Context(), auth.db, promotionSearchSelect+filter, args...)
 	if err != nil {
 		writeAdminPromotionError(w, err)
@@ -393,13 +393,9 @@ func (auth *accountAuth) adminPromotionProducts(w http.ResponseWriter, r *http.R
 	}
 	entries := make([]promotionSearchProduct, 0, len(rows))
 	for _, row := range rows {
-		entry := promotionSearchProduct{ID: row.ID, Title: row.Title, FullTitle: row.FullTitle, BrandTitle: row.BrandTitle}
-		if row.Price != nil {
-			if cents, err := checkoutCents(*row.Price); err == nil {
-				entry.PriceCents = &cents
-			}
-		}
-		entries = append(entries, entry)
+		entries = append(entries, promotionSearchProduct{
+			ID: row.ID, Title: row.Title, FullTitle: row.FullTitle, BrandTitle: row.BrandTitle, PriceCents: row.PriceCents,
+		})
 	}
 	writeJSON(w, listResponse[promotionSearchProduct]{Status: "success", Data: entries, Length: len(entries)})
 }

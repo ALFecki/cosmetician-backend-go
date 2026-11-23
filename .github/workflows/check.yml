@@ -113,6 +113,8 @@ jobs:
           SKVIDERM_TEST_REDIS_URL: redis://127.0.0.1:${{ job.services.redis.ports['6379'] }}/0
         run: go test -count=1 -v ./...
       - name: Test Python scripts
+        env:
+          SKVIDERM_CATALOG_MIGRATION_TEST_DSN: postgres://postgres:test-only@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/skviderm_catalog_test?sslmode=disable
         run: python3 -B -m unittest discover -s scripts -p 'test_*.py'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -136,6 +138,7 @@ jobs:
           docker exec "$POSTGRES_CONTAINER" createdb -U postgres skviderm_release_test
           sed -e 's/^CREATE TEMP TABLE/CREATE TABLE/' -e 's/pg_temp\.//g' \
             testdata/{account,catalog,product}_schema.sql testdata/cart_storage_schema.sql \
+            testdata/order_history_schema.sql \
             migrations/*.sql testdata/{catalog,product}_rows.sql |
             docker exec -i "$POSTGRES_CONTAINER" psql -X -U postgres -d skviderm_release_test \
               -v ON_ERROR_STOP=1 --single-transaction -f - >/dev/null
@@ -168,7 +171,8 @@ jobs:
             any(.data[]; .id == "00000000-0000-4000-8000-000000000304")'
           get '/api/product?sort=title' | jq -e '
             .status == "success" and .length == 3 and
-            .data[0].id == "00000000-0000-4000-8000-000000000501"'
+            .data[0].id == "00000000-0000-4000-8000-000000000501" and
+            any(.data[0].variants[]; .id == "00000000-0000-4000-8000-000000000601" and .price == 90.13)'
           get /api/maintenance/status | jq -e '.enabled and .ttl > 0'
           docker kill --signal=SIGTERM "$runtime" >/dev/null
           test "$(timeout 60 docker wait "$runtime")" = 0

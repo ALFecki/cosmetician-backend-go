@@ -204,66 +204,56 @@ func loadQuoteProducts(ctx context.Context, db database, items []cartItem, promo
 			unavailable = append(unavailable, item)
 			continue
 		}
-		baseCents, err := checkoutCents(v.Price)
-		if err != nil {
-			return nil, nil, err
-		}
 		if pricingEnabled {
-			price := bestPromotionPrice(baseCents, v.ProductID, p.Promotions)
+			price := bestPromotionPrice(v.PriceCents, v.ProductID, p.Promotions)
 			v.PromotionPrice = &price
 		}
 		products = append(products, orderProduct{
 			Product: p, Variant: v, Quantity: item.Quantity,
-			HistoricalPrice: v.Price, HistoricalCostPrice: v.CostPrice,
+			HistoricalPrice: float32(v.Price), HistoricalCostPrice: float32(v.CostPrice),
 		})
 	}
 	return products, unavailable, nil
 }
 
 func quotePromotionTotals(products []orderProduct, promos []promotion, enabled bool) (int64, int64, error) {
+	var subtotal, discount int64
+	for _, item := range products {
+		quantity := int64(item.Quantity)
+		subtotal += item.Variant.PriceCents * quantity
+		if enabled {
+			discount += item.Variant.PromotionPrice.SavingCents * quantity
+		}
+	}
+	if subtotal > maxCheckoutAmount*100 {
+		return 0, 0, quoteInputError("Некорректная сумма")
+	}
 	if enabled {
-		var subtotal, discount int64
-		for _, item := range products {
-			price := item.Variant.PromotionPrice
-			quantity := int64(item.Quantity)
-			subtotal += (price.FinalCents + price.SavingCents) * quantity
-			discount += price.SavingCents * quantity
-		}
-		if subtotal > maxCheckoutAmount*100 {
-			return 0, 0, quoteInputError("Некорректная сумма")
-		}
 		return subtotal, discount, nil
 	}
 
-	var base float32
-	for _, item := range products {
-		base += item.Variant.Price * float32(item.Quantity)
-	}
-	subtotal, err := checkoutCents(base)
-	if err != nil {
-		return 0, 0, err
-	}
-	discount, err := checkoutCents(min(base, max(0, cartPromotionDiscount(products, promos, base))))
+	base := float32(subtotal) / 100
+	discount, err := checkoutCents(min(base, max(0, cartPromotionDiscount(products, promos, subtotal))))
 	return subtotal, discount, err
 }
 
-func cartPromotionDiscount(items []orderProduct, promos []promotion, subtotal float32) float32 {
+func cartPromotionDiscount(items []orderProduct, promos []promotion, subtotal int64) float32 {
 	var total float32
 	for _, promo := range promos {
-		var applicable float32
+		var applicable int64
 		switch promo.TargetType {
 		case "all":
 			applicable = subtotal
 		case "product":
 			for _, item := range items {
 				if slices.Contains(promo.ProductIDs, item.Product.ID) {
-					applicable += float32(item.Variant.Price * float32(item.Quantity))
+					applicable += item.Variant.PriceCents * int64(item.Quantity)
 				}
 			}
 		}
 		// Legacy brand and category rules query persisted order items, which a quote has none of.
 		if applicable != 0 {
-			total += priceDiscount(promo.DiscountType, promo.DiscountValue, applicable)
+			total += priceDiscount(promo.DiscountType, promo.DiscountValue, float32(applicable)/100)
 		}
 	}
 	return total

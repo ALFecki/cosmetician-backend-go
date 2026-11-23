@@ -32,6 +32,7 @@ type dictionaryInput struct {
 }
 
 func (auth *accountAuth) registerCatalogWrites(mux *http.ServeMux, db cartDatabase) {
+	registerCatalogPrices(mux, auth, db)
 	for _, dictionary := range []dictionaryWrite{
 		{"brand", brands, false}, {"category", categories, false}, {"country", countries, false},
 		{"product_type", productTypes, true}, {"product_scope", productScopes, true},

@@ -75,8 +75,9 @@ func loadOrderProducts(ctx context.Context, db database, orders []order) error {
 		HistoricalPrice     float32
 		HistoricalCostPrice float32
 	}](ctx, db, `
-		SELECT op.order_id, v.id, v.product_id, v.volume, v.cost_price, v.price, v.is_default,
-		       v.is_deleted, v.created_at, v.updated_at, op.quantity,
+		SELECT op.order_id, v.id, v.product_id, v.volume,
+		       v.cost_price_cents::double precision / 100, v.price_cents::double precision / 100, v.is_default,
+		       v.is_deleted, v.created_at, v.updated_at, v.price_cents, op.quantity,
 		       CASE WHEN op.unit_price IS NOT NULL AND op.unit_cost_price IS NOT NULL THEN op.unit_price
 		            ELSE COALESCE(h.price, v.price) END,
 		       CASE WHEN op.unit_price IS NOT NULL AND op.unit_cost_price IS NOT NULL THEN op.unit_cost_price

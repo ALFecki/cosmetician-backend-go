@@ -269,6 +269,10 @@ func priceCheckoutItems(ctx context.Context, tx pgx.Tx, items []cartItem, promoC
 	if quote.PromoCodeError != nil {
 		return cartQuote{}, quoteInputError(*quote.PromoCodeError)
 	}
+	storedTotal, err := checkoutCents(quote.Order.TotalPrice)
+	if err != nil || storedTotal != quote.TotalCents {
+		return cartQuote{}, quoteInputError("Итог нельзя сохранить с точностью до копейки. Уменьшите количество товаров и повторите оформление")
+	}
 	return quote, nil
 }
 
@@ -340,7 +344,7 @@ func saveConfirmedItems(ctx context.Context, tx pgx.Tx, id uuid.UUID, products [
 	}
 	for _, line := range products {
 		_, err := tx.Exec(ctx, `INSERT INTO order_product (order_id, variant_id, quantity, unit_price, unit_cost_price)
-			VALUES ($1, $2, $3, $4, $5)`, id, line.Variant.ID, line.Quantity, line.Variant.Price, line.Variant.CostPrice)
+			VALUES ($1, $2, $3, $4, $5)`, id, line.Variant.ID, line.Quantity, float32(line.Variant.Price), float32(line.Variant.CostPrice))
 		if err != nil {
 			return err
 		}
