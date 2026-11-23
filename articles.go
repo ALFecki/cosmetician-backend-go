@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -14,19 +16,44 @@ import (
 
 const articlesRoute = "/api/articles"
 const adminArticlesRoute = "/api/admin/articles"
-const articleSummaryColumns = "id, title, summary, published_at"
-const articleColumns = articleSummaryColumns + ", body"
+const articleSummaryColumns = "id, title, summary, published_at, cover_image, CASE WHEN published_at IS NOT NULL THEN featured_position END"
+const articleColumns = articleSummaryColumns + ", body, body_images"
+
+var errInvalidFeaturedArticles = errors.New("featured articles must be published")
 
 type articleSummary struct {
-	ID          pgtype.UUID `json:"id"`
-	Title       string      `json:"title"`
-	Summary     string      `json:"summary"`
-	PublishedAt apiTime     `json:"publishedAt"`
+	ID               pgtype.UUID   `json:"id"`
+	Title            string        `json:"title"`
+	Summary          string        `json:"summary"`
+	PublishedAt      apiTime       `json:"publishedAt"`
+	CoverImage       *articleImage `json:"coverImage"`
+	FeaturedPosition *int16        `json:"featuredPosition"`
 }
 
 type article struct {
 	articleSummary
-	Body string `json:"body"`
+	Body       string             `json:"body"`
+	BodyImages []articleBodyImage `json:"bodyImages"`
+}
+
+type articleImage struct {
+	Image string `json:"image"`
+	Alt   string `json:"alt"`
+}
+
+type articleBodyImage struct {
+	articleImage
+	Caption        string `json:"caption,omitempty"`
+	AfterParagraph *int   `json:"afterParagraph"`
+}
+
+type articleMedia struct {
+	CoverImage jsontext.Value     `json:"coverImage"`
+	BodyImages []articleBodyImage `json:"bodyImages"`
+}
+
+type featuredArticles struct {
+	IDs []pgtype.UUID `json:"ids"`
 }
 
 type articleListResponse struct {
@@ -36,10 +63,11 @@ type articleListResponse struct {
 }
 
 type articleInput struct {
-	Title       *string `json:"title"`
-	Summary     *string `json:"summary"`
-	Body        *string `json:"body"`
-	IsPublished *bool   `json:"isPublished"`
+	Title       *string        `json:"title"`
+	Summary     *string        `json:"summary"`
+	Body        *string        `json:"body"`
+	IsPublished *bool          `json:"isPublished"`
+	Media       jsontext.Value `json:"media"`
 }
 
 func registerPublicArticles(mux *http.ServeMux, db database) {
@@ -53,6 +81,7 @@ func (auth *accountAuth) registerAdminArticles(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+detail, auth.requireModerator(getArticle(auth.db, false)))
 	mux.HandleFunc("POST "+adminArticlesRoute, auth.requireModerator(auth.saveArticle))
 	mux.HandleFunc("PUT "+detail, auth.requireModerator(auth.saveArticle))
+	mux.HandleFunc("PUT "+adminArticlesRoute+"/featured", auth.requireModerator(auth.saveFeaturedArticles))
 }
 
 func listArticles(db database, publishedOnly bool) http.HandlerFunc {
@@ -134,13 +163,30 @@ func (auth *accountAuth) saveArticle(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	query := `INSERT INTO article (title, summary, body, published_at)
-		VALUES ($1, $2, $3, CASE WHEN $4 THEN clock_timestamp() END) RETURNING ` + articleColumns
-	args := []any{*input.Title, *input.Summary, *input.Body, *input.IsPublished}
+	var cover *articleImage
+	var bodyImages any
+	if input.Media != nil {
+		var media articleMedia
+		if err := json.Unmarshal(input.Media, &media); err != nil ||
+			json.Unmarshal(media.CoverImage, &cover) != nil ||
+			(cover != nil && !validArticleImage(*cover)) ||
+			!validArticleBodyImages(*input.Body, media.BodyImages) {
+			writeText(w, http.StatusBadRequest, "Некорректные данные изображений статьи")
+			return
+		}
+		bodyImages = media.BodyImages
+	}
+	query := `INSERT INTO article (title, summary, body, published_at, cover_image, body_images)
+		VALUES ($1, $2, $3, CASE WHEN $4 THEN clock_timestamp() END, $5, COALESCE($6::jsonb, '[]'::jsonb))
+		RETURNING ` + articleColumns
+	args := []any{*input.Title, *input.Summary, *input.Body, *input.IsPublished, cover, bodyImages}
 	if id.Valid {
 		query = `UPDATE article SET title = $1, summary = $2, body = $3,
-			published_at = CASE WHEN $4 THEN COALESCE(published_at, clock_timestamp()) END
-			WHERE id = $5 RETURNING ` + articleColumns
+			published_at = CASE WHEN $4 THEN COALESCE(published_at, clock_timestamp()) END,
+			featured_position = CASE WHEN $4 AND published_at IS NOT NULL THEN featured_position END,
+			cover_image = CASE WHEN $6::jsonb IS NULL THEN cover_image ELSE $5::jsonb END,
+			body_images = COALESCE($6::jsonb, body_images)
+			WHERE id = $7 RETURNING ` + articleColumns
 		args = append(args, id)
 	}
 
@@ -154,9 +200,116 @@ func (auth *accountAuth) saveArticle(w http.ResponseWriter, r *http.Request) {
 	writeArticleResult(w, entry, err)
 }
 
+func validArticleImage(image articleImage) bool {
+	if strings.TrimSpace(image.Alt) == "" || !validArticleText(image.Alt, 200) {
+		return false
+	}
+	file, ok := strings.CutPrefix(image.Image, "/images/")
+	if !ok {
+		return false
+	}
+	key, extension, _ := strings.Cut(file, ".")
+	switch extension {
+	case "jpg", "png", "gif", "webp":
+		id, err := parseID(key)
+		return err == nil && id.String() == key
+	default:
+		return false
+	}
+}
+
+func validArticleBodyImages(body string, images []articleBodyImage) bool {
+	if images == nil || len(images) > 10 {
+		return false
+	}
+	paragraphs := 0
+	for _, line := range strings.FieldsFunc(body, isArticleLineBreak) {
+		if strings.TrimSpace(line) != "" {
+			paragraphs++
+		}
+	}
+	previous := 0
+	for _, image := range images {
+		position := image.AfterParagraph
+		if position == nil || *position < previous || *position > paragraphs ||
+			!validArticleImage(image.articleImage) || !validArticleText(image.Caption, 240) {
+			return false
+		}
+		previous = *position
+	}
+	return true
+}
+
+func isArticleLineBreak(r rune) bool {
+	return r == '\r' || r == '\n'
+}
+
+func (auth *accountAuth) saveFeaturedArticles(w http.ResponseWriter, r *http.Request) {
+	const invalidSelection = "Выберите до трёх разных опубликованных статей"
+	if !isJSONRequest(r) {
+		writeText(w, http.StatusBadRequest, "Content type error")
+		return
+	}
+	var input struct {
+		IDs []string `json:"ids"`
+	}
+	err := json.UnmarshalRead(http.MaxBytesReader(w, r.Body, maxJSONBodySize), &input)
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.As(err, &tooLarge):
+		writeText(w, http.StatusRequestEntityTooLarge, "Слишком большой запрос")
+		return
+	case err != nil || input.IDs == nil || len(input.IDs) > 3:
+		writeText(w, http.StatusBadRequest, invalidSelection)
+		return
+	}
+	ids := make([]pgtype.UUID, 0, len(input.IDs))
+	for _, value := range input.IDs {
+		id, err := parseID(value)
+		if err != nil || slices.Contains(ids, id) {
+			writeText(w, http.StatusBadRequest, invalidSelection)
+			return
+		}
+		ids = append(ids, id)
+	}
+
+	ctx := r.Context()
+	err = pgx.BeginTxFunc(ctx, auth.fullDB, pgx.TxOptions{AccessMode: pgx.ReadWrite}, func(tx pgx.Tx) error {
+		// Serialize replacement with other replacements and publication changes.
+		if _, err := tx.Exec(ctx, "LOCK TABLE article IN SHARE ROW EXCLUSIVE MODE"); err != nil {
+			return err
+		}
+		var published int
+		err := tx.QueryRow(ctx, "SELECT count(*) FROM article WHERE id = ANY($1) AND published_at IS NOT NULL", ids).Scan(&published)
+		if err != nil {
+			return err
+		}
+		if published != len(ids) {
+			return errInvalidFeaturedArticles
+		}
+		if _, err := tx.Exec(ctx, "UPDATE article SET featured_position = NULL WHERE featured_position IS NOT NULL"); err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, `UPDATE article SET featured_position = picks.position
+			FROM unnest($1::uuid[]) WITH ORDINALITY AS picks(id, position)
+			WHERE article.id = picks.id`, ids)
+		return err
+	})
+	if errors.Is(err, errInvalidFeaturedArticles) {
+		writeText(w, http.StatusBadRequest, invalidSelection)
+		return
+	}
+	if err != nil {
+		writeArticleError(w, err)
+		return
+	}
+	writeJSON(w, singleResponse{Status: "success", Data: featuredArticles{IDs: ids}})
+}
+
 func scanArticle(row pgx.Row) (article, error) {
 	var entry article
-	err := row.Scan(&entry.ID, &entry.Title, &entry.Summary, &entry.PublishedAt, &entry.Body)
+	err := row.Scan(&entry.ID, &entry.Title, &entry.Summary, &entry.PublishedAt, &entry.CoverImage,
+		&entry.FeaturedPosition, &entry.Body, &entry.BodyImages)
 	return entry, err
 }
 

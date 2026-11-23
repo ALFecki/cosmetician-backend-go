@@ -277,6 +277,39 @@ class ArticleMigrationProofTests(unittest.TestCase):
         ):
             self.assertIn(str(self.root / relative), files)
 
+    def test_media_release_and_rollback_require_the_exact_article_schema(self):
+        operations = self.operations
+        operations.ledger = self.article["go_migrations"]
+        name = "0005_article_media.sql"
+        sql = "ALTER TABLE article ADD COLUMN cover_image jsonb;"
+        digest = hashlib.sha256(sql.encode()).hexdigest()
+        after = {**operations.ledger, name: digest}
+        candidate = {
+            **self.article, "image": "sha256:" + "f" * 64,
+            "backend_commit": "f" * 40, "go_migrations": after,
+        }
+        proof = {
+            **operations.proof, "migration": name, "sql_sha256": digest,
+            "old_image": self.article["image"], "old_commit": self.article["backend_commit"],
+            "new_image": candidate["image"], "new_commit": candidate["backend_commit"],
+            "before": operations.ledger, "after": after,
+        }
+        with self.assertRaises(ValueError):
+            migration.check_deployment(operations, self.article, candidate)
+        proof_file = self.root / "article-media-migration.json"
+        sql_file = self.root / "go-migrations" / name
+        proof_file.write_text(json.dumps(proof))
+        sql_file.write_text(sql)
+        self.assertEqual(migration.check_deployment(operations, self.article, candidate), proof)
+        operations.ledger = after
+        migration.check_release_schema(operations, self.article)
+        with self.assertRaises(ValueError):
+            migration.check_release_schema(operations, operations.new)
+        (self.root / "catalog_price_migration.py").write_text("# migration helper")
+        archived = migration.recovery_files(operations)
+        expected = (proof_file, sql_file, self.root / ARTICLE_PROOF, self.root / migration.PROOF)
+        self.assertTrue(set(map(str, expected)).issubset(archived))
+
 
 @unittest.skipUnless(DSN, "set SKVIDERM_CATALOG_MIGRATION_TEST_DSN for isolated PostgreSQL")
 class PostgreSQLMigrationTests(unittest.TestCase):
