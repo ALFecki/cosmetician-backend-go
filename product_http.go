@@ -105,11 +105,16 @@ func productListSQL(values url.Values, filter listFilter) (string, []any, error)
 		}
 	}
 	// Each bound may match a different variant in the Rust catalog.
-	for _, field := range []struct{ key, condition string }{
-		{"minPrice", "v.price >= $%d"}, {"maxPrice", "v.price <= $%d"},
-		{"minVolume", "v.volume >= $%d"}, {"maxVolume", "v.volume <= $%d"},
+	for _, field := range []struct {
+		key, condition string
+		bits           int
+	}{
+		{"minPrice", "v.price_cents::double precision / 100 >= $%d", 64},
+		{"maxPrice", "v.price_cents::double precision / 100 <= $%d", 64},
+		{"minVolume", "v.volume >= $%d", 32},
+		{"maxVolume", "v.volume <= $%d", 32},
 	} {
-		number, err := queryFloat(values, field.key)
+		number, err := queryFloatPrecision(values, field.key, field.bits)
 		if err != nil {
 			return "", nil, err
 		}
@@ -138,7 +143,7 @@ func productOrder(sort string) string {
 	var variantColumn string
 	switch {
 	case strings.Contains(sort, "price"):
-		variantColumn = "price"
+		variantColumn = "price_cents"
 	case strings.Contains(sort, "volume"):
 		variantColumn = "volume"
 	}
@@ -164,18 +169,26 @@ func productOrder(sort string) string {
 }
 
 func queryFloat(values url.Values, key string) (*float32, error) {
+	number, err := queryFloatPrecision(values, key, 32)
+	if number == nil {
+		return nil, err
+	}
+	rounded := float32(*number)
+	return &rounded, err
+}
+
+func queryFloatPrecision(values url.Values, key string, bits int) (*float64, error) {
 	if !values.Has(key) {
 		return nil, nil
 	}
-	number, err := strconv.ParseFloat(values.Get(key), 32)
+	number, err := strconv.ParseFloat(values.Get(key), bits)
 	if err != nil && !errors.Is(err, strconv.ErrRange) {
 		return nil, errors.New("invalid float literal")
 	}
 	if math.IsInf(number, 0) || math.IsNaN(number) {
 		return nil, nil
 	}
-	value := float32(number)
-	return &value, nil
+	return &number, nil
 }
 
 func productDetailHandler(db database) http.HandlerFunc {
@@ -241,19 +254,25 @@ func variantListHandler(db database) http.HandlerFunc {
 			args = append(args, id)
 			clauses = append(clauses, "product_id = $1")
 		}
-		for _, key := range []string{"volume", "price"} {
-			if !values.Has(key) {
-				writeQueryError(w, fmt.Errorf("missing field `%s`", key))
+		for _, field := range []struct {
+			key, column string
+			bits        int
+		}{
+			{"volume", "volume", 32},
+			{"price", "price_cents::double precision / 100", 64},
+		} {
+			if !values.Has(field.key) {
+				writeQueryError(w, fmt.Errorf("missing field `%s`", field.key))
 				return
 			}
-			number, err := queryFloat(values, key)
+			number, err := queryFloatPrecision(values, field.key, field.bits)
 			if err != nil {
 				writeQueryError(w, err)
 				return
 			}
 			if number != nil {
 				args = append(args, *number)
-				clauses = append(clauses, fmt.Sprintf("%s = $%d", key, len(args)))
+				clauses = append(clauses, fmt.Sprintf("%s = $%d", field.column, len(args)))
 			}
 		}
 		entries, err := queryStructs[variant](r.Context(), db, variantSelect+" WHERE "+strings.Join(clauses, " AND "), args...)

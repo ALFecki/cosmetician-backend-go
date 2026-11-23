@@ -152,6 +152,50 @@ func TestCheckoutConfirmation(t *testing.T) {
 	}
 }
 
+func TestCheckoutRejectsTotalsThatLoseCentsWhenStored(t *testing.T) {
+	pool := testCartDatabase(t, "testdata/checkout_confirmation_schema.sql")
+	catalogPriceFixtureWrite(t, pool, `UPDATE product_variant SET price_cents = 200001
+		WHERE id = '00000000-0000-4000-8000-000000000601';
+		UPDATE promotion SET is_active = false`)
+	key := []byte("test-only")
+	auth := &accountAuth{
+		db: pool, cartDB: pool, fullDB: pool, key: key,
+		confirmation: &checkoutConfirmation{guestEnabled: true},
+	}
+	handler := newHandler(pool, nil, auth, true)
+	account := profileCookie(t, key, testAccountID, false, false, false)
+	items := []cartItem{{VariantID: uuid.MustParse("00000000-0000-4000-8000-000000000601"), Quantity: 99}}
+
+	const cartPath = "/api/checkout/cart"
+	cart := parseSavedQuote(t, newCartRequest(t, handler, http.MethodGet, cartPath, nil, account))
+	save := cartRequest{CartID: cart.Order.ID, ExpectedRevision: &cart.Order.CartRevision, Items: items}
+	var saved cartQuote
+	readOrderHistory(t, newCartRequest(t, handler, http.MethodPut, cartPath, save, account), &saved)
+	if saved.TotalCents != 19800099 {
+		t.Fatalf("quote total = %d, want 19800099", saved.TotalCents)
+	}
+
+	phone := "+375290000001"
+	checkout := checkoutRequest{
+		CartID: saved.Order.ID, ExpectedRevision: &saved.Order.CartRevision, CheckoutKey: uuid.New(),
+		Items: items, ExpectedTotalCents: &saved.TotalCents,
+		Details: &checkoutDetails{Phone: &phone, FirstName: "Тест", SecondName: "Покупатель",
+			DeliveryMethod: "pickup", PaymentMethod: "online", OfferConsent: true},
+	}
+	assertCartStatus(t, newCartRequest(t, handler, http.MethodPost, "/api/checkout", checkout, account), http.StatusBadRequest)
+	assertCartStatus(t, newCartRequest(t, handler, http.MethodGet, "/api/order/person/checkout?withPayment=true", nil, account), http.StatusBadRequest)
+
+	var status, paymentStatus string
+	var unsaved bool
+	err := pool.QueryRow(t.Context(), `SELECT status::text, payment_status::text,
+		checkout_key IS NULL AND payment_id IS NULL AND unit_price IS NULL AND unit_cost_price IS NULL
+		FROM "order" o JOIN order_product op ON op.order_id = o.id WHERE o.id = $1`, saved.Order.ID).
+		Scan(&status, &paymentStatus, &unsaved)
+	if err != nil || !unsaved || status != "NotChecked" || paymentStatus != "Pending" {
+		t.Fatalf("checkout changed order: status=%s payment=%s unsaved=%t error=%v", status, paymentStatus, unsaved, err)
+	}
+}
+
 func guestCheckoutRequest(t *testing.T, handler http.Handler, body checkoutRequest, cookie *http.Cookie, csrf string) *httptest.ResponseRecorder {
 	t.Helper()
 	payload, err := json.Marshal(body)

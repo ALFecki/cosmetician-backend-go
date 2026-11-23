@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -251,7 +252,12 @@ func testCartDatabase(t *testing.T, additionalFixtures ...string) *pgxpool.Pool 
 		"testdata/product_schema.sql", "testdata/product_rows.sql",
 		"testdata/cart_storage_schema.sql", "migrations/0001_cart_add_operation.sql",
 	}
-	for _, path := range append(fixtures, additionalFixtures...) {
+	if !slices.Contains(additionalFixtures, "testdata/order_history_schema.sql") {
+		fixtures = append(fixtures, "testdata/order_history_schema.sql")
+	}
+	fixtures = append(fixtures, additionalFixtures...)
+	fixtures = append(fixtures, "migrations/0003_catalog_price_cents.sql")
+	for _, path := range fixtures {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)

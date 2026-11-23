@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 
@@ -164,8 +165,8 @@ func saveProductLinks(ctx context.Context, tx pgx.Tx, id pgtype.UUID, input cata
 type catalogVariantInput struct {
 	ProductID *pgtype.UUID `json:"productId"`
 	Volume    *float32     `json:"volume"`
-	CostPrice *float32     `json:"costPrice"`
-	Price     *float32     `json:"price"`
+	CostPrice *float64     `json:"costPrice"`
+	Price     *float64     `json:"price"`
 	IsDefault *bool        `json:"isDefault"`
 	IsDeleted *bool        `json:"isDeleted"`
 }
@@ -181,9 +182,13 @@ func saveCatalogVariant(db cartDatabase) http.HandlerFunc {
 			writeText(w, http.StatusBadRequest, "Отсутствуют обязательные поля варианта")
 			return
 		}
-		for _, value := range []*float32{input.Volume, input.CostPrice, input.Price} {
-			if value != nil && *value < 0 {
-				writeText(w, http.StatusBadRequest, "Объём и цены не могут быть отрицательными")
+		if input.Volume != nil && *input.Volume < 0 {
+			writeText(w, http.StatusBadRequest, "Объём не может быть отрицательным")
+			return
+		}
+		for _, value := range []*float64{input.CostPrice, input.Price} {
+			if value != nil && (*value < 0 || *value > maxCheckoutAmount) {
+				writeText(w, http.StatusBadRequest, "Цена должна быть от 0 до 1 000 000 BYN")
 				return
 			}
 		}
@@ -218,20 +223,20 @@ func saveCatalogVariant(db cartDatabase) http.HandlerFunc {
 
 func variantWriteStatement(id pgtype.UUID, input catalogVariantInput, create bool) (string, []any) {
 	if create {
-		return `INSERT INTO product_variant (id, product_id, volume, cost_price, price,
+		return `INSERT INTO product_variant (id, product_id, volume, cost_price_cents, price_cents,
 			is_default, is_deleted, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, COALESCE($6, false), COALESCE($7, false), now(), NULL) RETURNING id`,
-			[]any{id, input.ProductID, input.Volume, input.CostPrice, input.Price, input.IsDefault, input.IsDeleted}
+			[]any{id, input.ProductID, input.Volume, int64(math.Round(*input.CostPrice * 100)), int64(math.Round(*input.Price * 100)), input.IsDefault, input.IsDeleted}
 	}
 	var priceUpdates []string
 	args := []any{id, input.ProductID, input.Volume, input.IsDefault}
 	if input.CostPrice != nil {
-		args = append(args, *input.CostPrice)
-		priceUpdates = append(priceUpdates, fmt.Sprintf("cost_price = $%d, ", len(args)))
+		args = append(args, int64(math.Round(*input.CostPrice*100)))
+		priceUpdates = append(priceUpdates, fmt.Sprintf("cost_price_cents = $%d, ", len(args)))
 	}
 	if input.Price != nil {
-		args = append(args, *input.Price)
-		priceUpdates = append(priceUpdates, fmt.Sprintf("price = $%d, ", len(args)))
+		args = append(args, int64(math.Round(*input.Price*100)))
+		priceUpdates = append(priceUpdates, fmt.Sprintf("price_cents = $%d, ", len(args)))
 	}
 	return `UPDATE product_variant SET product_id = COALESCE($2, product_id), volume = COALESCE($3, volume),
 		is_default = COALESCE($4, is_default), ` + strings.Join(priceUpdates, "") + "updated_at = now() WHERE id = $1 RETURNING id", args

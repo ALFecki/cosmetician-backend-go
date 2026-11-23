@@ -135,7 +135,7 @@ func TestPromotionPricesAcrossCatalogQuoteAndCheckout(t *testing.T) {
 		t.Fatalf("checkout did not persist the quote total and discount: %v", placed.TotalPrice)
 	}
 	for _, line := range placed.Products {
-		if line.Variant.PromotionPrice != nil || line.HistoricalPrice != line.Variant.Price {
+		if line.Variant.PromotionPrice != nil || line.HistoricalPrice != float32(line.Variant.Price) {
 			t.Fatal("checkout replaced historical prices with live promotion metadata")
 		}
 	}

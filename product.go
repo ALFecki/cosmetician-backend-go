@@ -53,12 +53,13 @@ type variant struct {
 	ID             pgtype.UUID     `json:"id"`
 	ProductID      pgtype.UUID     `json:"productId"`
 	Volume         float32         `json:"volume"`
-	CostPrice      float32         `json:"costPrice"`
-	Price          float32         `json:"price"`
+	CostPrice      float64         `json:"costPrice"`
+	Price          float64         `json:"price"`
 	IsDefault      bool            `json:"isDefault"`
 	IsDeleted      *bool           `json:"isDeleted"`
 	CreatedAt      apiTime         `json:"createdAt"`
 	UpdatedAt      apiTime         `json:"updatedAt"`
+	PriceCents     int64           `json:"-"`
 	PromotionPrice *promotionPrice `json:"promotionPrice,omitempty" db:"-"`
 }
 
@@ -73,7 +74,8 @@ const productSelect = `
 `
 
 const variantSelect = `
-    SELECT id, product_id, volume, cost_price, price, is_default, is_deleted, created_at, updated_at
+    SELECT id, product_id, volume, cost_price_cents::double precision / 100, price_cents::double precision / 100,
+           is_default, is_deleted, created_at, updated_at, price_cents
     FROM product_variant
 `
 
