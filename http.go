@@ -31,6 +31,7 @@ type singleResponse struct {
 func newHandler(db database, images *imageStore, accounts *accountAuth, checkoutEnabled bool) http.Handler {
 	mux := http.NewServeMux()
 	registerOperations(mux, db, accounts)
+	registerPublicArticles(mux, db)
 	mux.HandleFunc("GET /api/banner", func(w http.ResponseWriter, r *http.Request) {
 		entries, err := listBanners(r.Context(), db, false, r.URL.Query().Get("home") == "true")
 		if err != nil {
@@ -60,6 +61,7 @@ func newHandler(db database, images *imageStore, accounts *accountAuth, checkout
 		}
 		if accounts.fullDB != nil {
 			accounts.registerCatalogWrites(mux, accounts.fullDB)
+			accounts.registerAdminArticles(mux)
 			accounts.registerLegacyCommerce(mux, accounts.fullDB, accounts.orderMailer)
 			if images != nil {
 				accounts.registerImageUpload(mux, images)

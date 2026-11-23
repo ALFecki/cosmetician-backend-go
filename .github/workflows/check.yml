@@ -173,6 +173,7 @@ jobs:
             .status == "success" and .length == 3 and
             .data[0].id == "00000000-0000-4000-8000-000000000501" and
             any(.data[0].variants[]; .id == "00000000-0000-4000-8000-000000000601" and .price == 90.13)'
+          get /api/articles | jq -e '. == {status: "success", length: 0, data: []}'
           get /api/maintenance/status | jq -e '.enabled and .ttl > 0'
           docker kill --signal=SIGTERM "$runtime" >/dev/null
           test "$(timeout 60 docker wait "$runtime")" = 0
