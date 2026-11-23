@@ -1,0 +1,178 @@
+package main
+
+import (
+	"encoding/json/v2"
+	"errors"
+	"log/slog"
+	"net/http"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+const articlesRoute = "/api/articles"
+const adminArticlesRoute = "/api/admin/articles"
+const articleSummaryColumns = "id, title, summary, published_at"
+const articleColumns = articleSummaryColumns + ", body"
+
+type articleSummary struct {
+	ID          pgtype.UUID `json:"id"`
+	Title       string      `json:"title"`
+	Summary     string      `json:"summary"`
+	PublishedAt apiTime     `json:"publishedAt"`
+}
+
+type article struct {
+	articleSummary
+	Body string `json:"body"`
+}
+
+type articleListResponse struct {
+	Status string           `json:"status"`
+	Length int              `json:"length"`
+	Data   []articleSummary `json:"data"`
+}
+
+type articleInput struct {
+	Title       *string `json:"title"`
+	Summary     *string `json:"summary"`
+	Body        *string `json:"body"`
+	IsPublished *bool   `json:"isPublished"`
+}
+
+func registerPublicArticles(mux *http.ServeMux, db database) {
+	mux.HandleFunc("GET "+articlesRoute, listArticles(db, true))
+	mux.HandleFunc("GET "+articlesRoute+"/{id}", getArticle(db, true))
+}
+
+func (auth *accountAuth) registerAdminArticles(mux *http.ServeMux) {
+	detail := adminArticlesRoute + "/{id}"
+	mux.HandleFunc("GET "+adminArticlesRoute, auth.requireModerator(listArticles(auth.db, false)))
+	mux.HandleFunc("GET "+detail, auth.requireModerator(getArticle(auth.db, false)))
+	mux.HandleFunc("POST "+adminArticlesRoute, auth.requireModerator(auth.saveArticle))
+	mux.HandleFunc("PUT "+detail, auth.requireModerator(auth.saveArticle))
+}
+
+func listArticles(db database, publishedOnly bool) http.HandlerFunc {
+	query := "SELECT " + articleSummaryColumns + " FROM article"
+	if publishedOnly {
+		query += " WHERE published_at IS NOT NULL"
+	}
+	query += " ORDER BY published_at DESC NULLS LAST, id"
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		entries, err := queryStructs[articleSummary](r.Context(), db, query)
+		if err != nil {
+			writeArticleError(w, err)
+			return
+		}
+		writeJSON(w, articleListResponse{Status: "success", Length: len(entries), Data: entries})
+	}
+}
+
+func getArticle(db database, publishedOnly bool) http.HandlerFunc {
+	query := "SELECT " + articleColumns + " FROM article WHERE id = $1"
+	if publishedOnly {
+		query += " AND published_at IS NOT NULL"
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		id, ok := requestID(w, r)
+		if !ok {
+			return
+		}
+		entry, err := scanArticle(db.QueryRow(r.Context(), query, id))
+		writeArticleResult(w, entry, err)
+	}
+}
+
+func readArticleInput(w http.ResponseWriter, r *http.Request) (articleInput, bool) {
+	var input articleInput
+	if !isJSONRequest(r) {
+		writeText(w, http.StatusBadRequest, "Content type error")
+		return input, false
+	}
+	err := json.UnmarshalRead(http.MaxBytesReader(w, r.Body, maxJSONBodySize), &input)
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.As(err, &tooLarge):
+		writeText(w, http.StatusRequestEntityTooLarge, "Слишком большой запрос")
+	case err != nil || input.Title == nil || input.Summary == nil || input.Body == nil || input.IsPublished == nil:
+		writeText(w, http.StatusBadRequest, "Некорректные данные статьи")
+	case !validArticleText(*input.Title, 160) || strings.TrimSpace(*input.Title) == "":
+		writeText(w, http.StatusBadRequest, "Введите заголовок до 160 символов")
+	case !validArticleText(*input.Summary, 350):
+		writeText(w, http.StatusBadRequest, "Краткое описание должно содержать не более 350 символов")
+	case !validArticleText(*input.Body, 30000):
+		writeText(w, http.StatusBadRequest, "Текст статьи должен содержать не более 30 000 символов")
+	case *input.IsPublished && strings.TrimSpace(*input.Body) == "":
+		writeText(w, http.StatusBadRequest, "Введите текст статьи для публикации")
+	default:
+		return input, true
+	}
+	return input, false
+}
+
+func validArticleText(value string, limit int) bool {
+	return !strings.ContainsRune(value, 0) && utf8.RuneCountInString(value) <= limit
+}
+
+func (auth *accountAuth) saveArticle(w http.ResponseWriter, r *http.Request) {
+	var id pgtype.UUID
+	if r.Method == http.MethodPut {
+		var ok bool
+		id, ok = requestID(w, r)
+		if !ok {
+			return
+		}
+	}
+	input, ok := readArticleInput(w, r)
+	if !ok {
+		return
+	}
+	query := `INSERT INTO article (title, summary, body, published_at)
+		VALUES ($1, $2, $3, CASE WHEN $4 THEN clock_timestamp() END) RETURNING ` + articleColumns
+	args := []any{*input.Title, *input.Summary, *input.Body, *input.IsPublished}
+	if id.Valid {
+		query = `UPDATE article SET title = $1, summary = $2, body = $3,
+			published_at = CASE WHEN $4 THEN COALESCE(published_at, clock_timestamp()) END
+			WHERE id = $5 RETURNING ` + articleColumns
+		args = append(args, id)
+	}
+
+	var entry article
+	ctx := r.Context()
+	err := pgx.BeginTxFunc(ctx, auth.fullDB, pgx.TxOptions{AccessMode: pgx.ReadWrite}, func(tx pgx.Tx) error {
+		var err error
+		entry, err = scanArticle(tx.QueryRow(ctx, query, args...))
+		return err
+	})
+	writeArticleResult(w, entry, err)
+}
+
+func scanArticle(row pgx.Row) (article, error) {
+	var entry article
+	err := row.Scan(&entry.ID, &entry.Title, &entry.Summary, &entry.PublishedAt, &entry.Body)
+	return entry, err
+}
+
+func writeArticleResult(w http.ResponseWriter, entry article, err error) {
+	if err != nil {
+		writeArticleError(w, err)
+		return
+	}
+	writeJSON(w, singleResponse{Status: "success", Data: entry})
+}
+
+func writeArticleError(w http.ResponseWriter, err error) {
+	if errors.Is(err, pgx.ErrNoRows) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	slog.Error("article query failed")
+	writeText(w, http.StatusInternalServerError, "Не удалось сохранить или загрузить статью")
+}

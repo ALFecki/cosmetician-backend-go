@@ -1,4 +1,4 @@
-"""One approved forward-compatible catalog price migration for the VPS release helper."""
+"""Explicit approved additive Go migrations for the VPS release helper."""
 
 import hashlib
 import json
@@ -8,6 +8,10 @@ from pathlib import Path
 
 MIGRATION = "0003_catalog_price_cents.sql"
 PROOF = "catalog-price-migration.json"
+APPROVALS = {
+    MIGRATION: (PROOF, "catalog_price_operation", "SELECT, INSERT"),
+    "0004_articles.sql": ("articles-migration.json", "article", "SELECT, INSERT, UPDATE"),
+}
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 IMAGE = re.compile(r"sha256:[a-f0-9]{64}\Z")
@@ -18,9 +22,11 @@ STATEMENT_TIMEOUT_MS = 55_000
 START_WINDOW_SECONDS = 30
 
 
-def trusted_proof(operations):
+def trusted_proof(operations, migration=MIGRATION):
+    if migration not in APPROVALS:
+        raise ValueError("Unapproved Go migration")
     path = operations.private_go_file(
-        operations.root / PROOF, "Catalog price migration proof"
+        operations.root / APPROVALS[migration][0], "Go migration proof"
     )
     proof = json.loads(path.read_text())
     fields = {
@@ -28,18 +34,18 @@ def trusted_proof(operations):
         "old_commit", "new_commit", "before", "after", "checks",
     }
     if not isinstance(proof, dict) or proof.keys() != fields:
-        raise ValueError("Invalid catalog price migration proof")
+        raise ValueError("Invalid Go migration proof")
     before, after = proof["before"], proof["after"]
     if (
         proof["schema"] != 1
-        or proof["migration"] != MIGRATION
+        or proof["migration"] != migration
         or not isinstance(before, dict)
         or not before
         or not isinstance(after, dict)
-        or MIGRATION in before
+        or migration in before
         or not isinstance(proof["sql_sha256"], str)
         or not SHA256.fullmatch(proof["sql_sha256"])
-        or after != {**before, MIGRATION: proof["sql_sha256"]}
+        or after != {**before, migration: proof["sql_sha256"]}
         or any(
             not isinstance(name, str) or not MIGRATION_NAME.fullmatch(name)
             or not isinstance(digest, str) or not SHA256.fullmatch(digest)
@@ -59,8 +65,29 @@ def trusted_proof(operations):
             "old_runtime": True, "new_runtime": True, "migration": True
         }
     ):
-        raise ValueError("Invalid catalog price migration compatibility proof")
+        raise ValueError("Invalid Go migration compatibility proof")
     return proof
+
+
+def installed_proofs(operations):
+    return [
+        trusted_proof(operations, name)
+        for name, (filename, _, _) in APPROVALS.items()
+        if (operations.root / filename).exists() or (operations.root / filename).is_symlink()
+    ]
+
+
+def recovery_files(operations):
+    files = [str(operations.private_go_file(
+        operations.root / "catalog_price_migration.py", "Go migration helper"
+    ))]
+    for proof in installed_proofs(operations):
+        trusted_sql(operations, proof)
+        files.extend([
+            str(operations.root / APPROVALS[proof["migration"]][0]),
+            str(operations.root / "go-migrations" / proof["migration"]),
+        ])
+    return files
 
 
 def matches_release(release, proof, version):
@@ -77,44 +104,46 @@ def check_release_schema(operations, release):
     actual = operations.go_migration_ledger()
     if release["go_migrations"] == actual:
         return
-    proof = trusted_proof(operations)
-    if matches_release(release, proof, "old") and actual == proof["after"]:
-        return
-    raise ValueError("Go image is not approved for the actual catalog price schema")
+    for proof in installed_proofs(operations):
+        if matches_release(release, proof, "old") and actual == proof["after"]:
+            return
+    raise ValueError("Go image is not approved for the actual schema")
 
 
 def check_deployment(operations, old, candidate):
     actual = operations.go_migration_ledger()
     if old["go_migrations"] == candidate["go_migrations"] == actual:
         return
-    proof = trusted_proof(operations)
-    if actual not in (proof["before"], proof["after"]):
-        raise ValueError("Actual Go ledger differs from the catalog price migration proof")
-    if not matches_release(old, proof, "old"):
-        raise ValueError("Current Go release differs from the approved old image")
-    if matches_release(candidate, proof, "old") and actual == proof["after"]:
-        return
-    if not matches_release(candidate, proof, "new"):
-        raise ValueError("Candidate Go release differs from the approved new image")
-    migration_role(operations)
-    trusted_sql(operations, proof)
+    proofs = installed_proofs(operations)
+    for proof in proofs:
+        if actual not in (proof["before"], proof["after"]) or not matches_release(old, proof, "old"):
+            continue
+        if matches_release(candidate, proof, "old") and actual == proof["after"]:
+            return proof
+        if matches_release(candidate, proof, "new"):
+            migration_role(operations)
+            trusted_sql(operations, proof)
+            return proof
+    if all(actual not in (proof["before"], proof["after"]) for proof in proofs):
+        raise ValueError("Actual Go ledger differs from the approved migration proofs")
+    raise ValueError("Go release pair differs from the approved images and ledgers")
 
 
 def migration_role(operations):
     role = operations.config.get("go_role", "")
     if not isinstance(role, str) or not ROLE.fullmatch(role):
-        raise ValueError("Configure the reviewed Go database role for the catalog price migration")
+        raise ValueError("Configure the reviewed Go database role for the migration")
     return role
 
 
 def trusted_sql(operations, proof):
     path = operations.private_go_file(
-        operations.root / "go-migrations" / MIGRATION,
-        "Catalog price migration SQL",
+        operations.root / "go-migrations" / proof["migration"],
+        "Go migration SQL",
     )
     data = path.read_bytes()
     if hashlib.sha256(data).hexdigest() != proof["sql_sha256"]:
-        raise ValueError("Catalog price migration SQL differs from the approved digest")
+        raise ValueError("Go migration SQL differs from the approved digest")
     return data.decode("utf-8")
 
 
@@ -126,7 +155,7 @@ def ledger_assertion(expected):
         "    IF (SELECT COALESCE(jsonb_object_agg(filename, sha256), '{}'::jsonb)\n"
         "        FROM public.skviderm_go_migrations) IS DISTINCT FROM "
         "'" + literal + "'::jsonb THEN\n"
-        "        RAISE EXCEPTION 'Catalog price migration ledger does not match';\n"
+        "        RAISE EXCEPTION 'Go migration ledger does not match';\n"
         "    END IF;\n"
         "END $catalog_price_ledger$;\n"
     )
@@ -139,8 +168,7 @@ def apply_migration(operations, old, candidate):
         or old["go_migrations"] == candidate["go_migrations"]
     ):
         return
-    check_deployment(operations, old, candidate)
-    proof = trusted_proof(operations)
+    proof = check_deployment(operations, old, candidate)
     if operations.go_migration_ledger() == proof["after"]:
         return
     operation = operations.state.get("operation", {})
@@ -153,19 +181,23 @@ def apply_migration(operations, old, candidate):
         or operation.get("candidate", {}).get("image") != candidate["image"]
         or not Path(operations.config["gate"]).is_file()
     ):
-        raise ValueError("Catalog price migration requires the gated deployment and encrypted backup")
+        raise ValueError("Go migration requires the gated deployment and encrypted backup")
     if operations.container_running(old["container"]):
-        raise ValueError("Stop the current application before the catalog price migration")
+        raise ValueError("Stop the current application before the Go migration")
     sql = trusted_sql(operations, proof)
     role = migration_role(operations)
     deadline = (datetime.now(timezone.utc) + timedelta(seconds=START_WINDOW_SECONDS)).isoformat()
     start_guard = (
         "DO $catalog_price_deadline$ BEGIN "
         "IF clock_timestamp() >= '" + deadline + "'::timestamptz THEN "
-        "RAISE EXCEPTION 'Catalog price migration start deadline passed'; "
+        "RAISE EXCEPTION 'Go migration start deadline passed'; "
         "END IF; END $catalog_price_deadline$;\n"
     )
-    operations.phase("applying-catalog-price-migration")
+    _, table, permissions = APPROVALS[proof["migration"]]
+    operations.phase(
+        "applying-catalog-price-migration" if proof["migration"] == MIGRATION
+        else "applying-articles-migration"
+    )
     operations.database(
         "BEGIN;\n"
         "SET LOCAL search_path = public;\n"
@@ -177,11 +209,11 @@ def apply_migration(operations, old, candidate):
         + start_guard
         + ledger_assertion(proof["before"])
         + sql
-        + '\nGRANT SELECT, INSERT ON public.catalog_price_operation TO "' + role + '";\n'
+        + '\nGRANT ' + permissions + ' ON public.' + table + ' TO "' + role + '";\n'
         + "INSERT INTO public.skviderm_go_migrations(filename, sha256) VALUES ('"
-        + MIGRATION + "', '" + proof["sql_sha256"] + "');\n"
+        + proof["migration"] + "', '" + proof["sql_sha256"] + "');\n"
         + ledger_assertion(proof["after"])
         + "COMMIT;\n"
     )
     if operations.go_migration_ledger() != proof["after"]:
-        raise ValueError("Catalog price migration did not produce the approved ledger")
+        raise ValueError("Go migration did not produce the approved ledger")

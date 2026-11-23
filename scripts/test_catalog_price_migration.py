@@ -30,6 +30,29 @@ SQL = (
 )
 BASELINE = os.environ.get("SKVIDERM_OPERATIONS_BASELINE")
 DSN = os.environ.get("SKVIDERM_CATALOG_MIGRATION_TEST_DSN")
+ARTICLE_MIGRATION = "0004_articles.sql"
+ARTICLE_PROOF = "articles-migration.json"
+ARTICLE_SQL = (Path(__file__).resolve().parent.parent / "migrations" / ARTICLE_MIGRATION).read_text()
+
+
+def install_article_proof(operations):
+    article = {
+        **operations.new, "image": "sha256:" + "e" * 64,
+        "backend_commit": "e" * 40, "container": "article",
+        "go_migrations": {
+            **operations.after, ARTICLE_MIGRATION: hashlib.sha256(ARTICLE_SQL.encode()).hexdigest(),
+        },
+    }
+    proof = {
+        **operations.proof, "migration": ARTICLE_MIGRATION,
+        "sql_sha256": article["go_migrations"][ARTICLE_MIGRATION],
+        "old_image": operations.new["image"], "old_commit": operations.new["backend_commit"],
+        "new_image": article["image"], "new_commit": article["backend_commit"],
+        "before": operations.after, "after": article["go_migrations"],
+    }
+    (operations.root / ARTICLE_PROOF).write_text(json.dumps(proof))
+    (operations.root / "go-migrations" / ARTICLE_MIGRATION).write_text(ARTICLE_SQL)
+    return article
 
 
 class LocalOperations:
@@ -199,6 +222,62 @@ class MigrationProofTests(unittest.TestCase):
                     migration.apply_migration(operations, operations.old, operations.new)
 
 
+class ArticleMigrationProofTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.operations = LocalOperations(self.root)
+        self.article = install_article_proof(self.operations)
+
+    def test_each_transition_requires_its_own_exact_proof(self):
+        operations = self.operations
+        migration.check_deployment(operations, operations.old, operations.new)
+        operations.ledger = operations.after
+        migration.check_deployment(operations, operations.new, self.article)
+        for field, value in (
+            ("image", "sha256:" + "f" * 64),
+            ("backend_commit", "f" * 40),
+            ("go_migrations", {**self.article["go_migrations"], "0005_unapproved.sql": "f" * 64}),
+        ):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                migration.check_deployment(operations, operations.new, {**self.article, field: value})
+
+    def test_price_rollback_survives_and_article_rollback_is_not_transitive(self):
+        operations = self.operations
+        operations.ledger = operations.after
+        migration.check_release_schema(operations, operations.old)
+        operations.ledger = self.article["go_migrations"]
+        migration.check_release_schema(operations, operations.new)
+        migration.check_deployment(operations, operations.new, operations.new)
+        migration.check_deployment(operations, operations.new, self.article)
+        with self.assertRaises(ValueError):
+            migration.check_release_schema(operations, operations.old)
+        later = {**self.article, "image": "sha256:" + "f" * 64, "backend_commit": "f" * 40}
+        migration.check_deployment(operations, self.article, later)
+
+    def test_article_proof_and_sql_cannot_authorize_other_migrations(self):
+        operations = self.operations
+        operations.ledger = operations.after
+        path = self.root / ARTICLE_PROOF
+        proof = json.loads(path.read_text())
+        proof["migration"] = migration.MIGRATION
+        path.write_text(json.dumps(proof))
+        with self.assertRaises(ValueError):
+            migration.check_deployment(operations, operations.new, self.article)
+        install_article_proof(operations)
+        (self.root / "go-migrations" / ARTICLE_MIGRATION).write_text("unreviewed SQL")
+        with self.assertRaisesRegex(ValueError, "digest"):
+            migration.check_deployment(operations, operations.new, self.article)
+
+    def test_recovery_archive_keeps_both_approved_proofs_and_sql(self):
+        (self.root / "catalog_price_migration.py").write_text("# migration helper")
+        files = migration.recovery_files(self.operations)
+        for relative in (
+            "catalog_price_migration.py", migration.PROOF, ARTICLE_PROOF,
+            "go-migrations/" + migration.MIGRATION, "go-migrations/" + ARTICLE_MIGRATION,
+        ):
+            self.assertIn(str(self.root / relative), files)
+
+
 @unittest.skipUnless(DSN, "set SKVIDERM_CATALOG_MIGRATION_TEST_DSN for isolated PostgreSQL")
 class PostgreSQLMigrationTests(unittest.TestCase):
     def setUp(self):
@@ -333,12 +412,44 @@ class PostgreSQLMigrationTests(unittest.TestCase):
         operations.database = lambda _: self.fail("committed migration was executed twice")
         migration.apply_migration(operations, operations.old, operations.new)
 
+    def test_two_proofs_apply_articles_and_recover_without_reverting_prices(self):
+        operations = self.operations
+        article = install_article_proof(operations)
+        migration.apply_migration(operations, operations.old, operations.new)
+        migration.check_release_schema(operations, operations.old)
+        role = "articles_role_" + uuid.uuid4().hex
+        self.execute(f"CREATE ROLE {role} NOLOGIN")
+        try:
+            operations.config["go_role"] = role
+            operations.state["operation"]["candidate"] = article
+            migration.apply_migration(operations, operations.new, article)
+            self.assertEqual(self.read_ledger(), article["go_migrations"])
+            self.assertEqual(self.execute(f"SELECT count(*) FROM {self.schema}.article"), "0")
+            self.execute(
+                f"INSERT INTO {self.schema}.article(title,summary,body) VALUES ('Published', '', 'Retained text')"
+            )
+            migration.check_release_schema(operations, operations.new)
+            migration.check_deployment(operations, operations.new, operations.new)
+            migration.apply_migration(operations, operations.new, article)
+            self.assertEqual(self.execute(f"SELECT body FROM {self.schema}.article"), "Retained text")
+            self.assertEqual(
+                self.execute(f"SELECT to_regclass('{self.schema}.catalog_price_operation') IS NOT NULL"), "t"
+            )
+            for permission, expected in (("SELECT", "t"), ("INSERT", "t"), ("UPDATE", "t"), ("DELETE", "f")):
+                actual = self.execute(
+                    f"SELECT has_table_privilege('{role}', '{self.schema}.article', '{permission}')"
+                )
+                self.assertEqual(actual, expected, permission)
+        finally:
+            self.execute(f"DROP OWNED BY {role}; DROP ROLE {role}")
+
 
 @unittest.skipUnless(BASELINE, "set SKVIDERM_OPERATIONS_BASELINE to the exact reviewed VPS script")
 class PatchedOperationsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.output = patched_source(Path(BASELINE).read_bytes())
+        from install_articles_migration import patched_source as articles_source
+        cls.output = articles_source(patched_source(Path(BASELINE).read_bytes()))
         cls.directory = tempfile.TemporaryDirectory()
         module_path = Path(cls.directory.name) / "server.py"
         module_path.write_bytes(cls.output)
@@ -408,7 +519,7 @@ class PatchedOperationsTests(unittest.TestCase):
                 self.state["operation"].update(phase=phase, **fields)
 
             def database(self, sql):
-                if self.running["old"] or self.running["new"] or not Path(self.config["gate"]).is_file():
+                if any(self.running.values()) or not Path(self.config["gate"]).is_file():
                     raise AssertionError("SQL applied with application running or API open")
                 if not self.state["operation"].get("backup"):
                     raise AssertionError("SQL applied without encrypted backup")
@@ -421,7 +532,7 @@ class PatchedOperationsTests(unittest.TestCase):
                 self.frontend = release["backend_commit"]
 
             def ready(self):
-                if self.running["new"] and self.fail_new:
+                if self.running[self.new["container"]] and self.fail_new:
                     raise RuntimeError("candidate readiness failed")
 
             def public_smoke(self):
@@ -447,12 +558,25 @@ class PatchedOperationsTests(unittest.TestCase):
         self.enterContext(patch.object(server, "run", side_effect=run))
 
     def test_snapshot_always_includes_the_imported_helper_without_a_proof(self):
+        (self.root / migration.PROOF).unlink()
+        archived = self.snapshot_archive()
+        self.assertNotIn(str(self.root / migration.PROOF), archived)
+
+    def test_snapshot_keeps_both_installed_proofs_and_sql(self):
+        install_article_proof(self.operations)
+        archived = self.snapshot_archive()
+        for relative in (
+            migration.PROOF, ARTICLE_PROOF,
+            "go-migrations/" + migration.MIGRATION, "go-migrations/" + ARTICLE_MIGRATION,
+        ):
+            self.assertIn(str(self.root / relative), archived)
+
+    def snapshot_archive(self):
         operations = self.operations
         operations.running["old"] = False
         operations.old["frontend"] = str(self.root / "frontend")
         Path(operations.old["frontend"]).mkdir()
         (self.root / "backups").mkdir()
-        (self.root / migration.PROOF).unlink()
         module = self.root / "catalog_price_migration.py"
         module.write_text("# installed migration helper")
         source = self.root / "server.py"
@@ -483,7 +607,7 @@ class PatchedOperationsTests(unittest.TestCase):
             self.server.Operations.snapshot(operations, operations.old)
         self.assertIn(str(source), archived)
         self.assertIn(str(module), archived)
-        self.assertNotIn(str(self.root / migration.PROOF), archived)
+        return archived
 
     def test_patch_refuses_other_server_source(self):
         with self.assertRaisesRegex(ValueError, "differs"):
@@ -500,6 +624,47 @@ class PatchedOperationsTests(unittest.TestCase):
         self.assertEqual(operations.started, ["new", "old"])
         self.assertEqual(operations.ledger, operations.after)
         self.assertFalse(Path(operations.config["gate"]).exists())
+
+    def test_two_proof_deployment_rollback_and_frontend_only_release(self):
+        operations = self.operations
+        article = install_article_proof(operations)
+        operations.deploy({"id": "prices"})
+        operations.rollback()
+        self.assertEqual(operations.ledger, operations.after)
+        operations.deploy({"id": "prices-retry"})
+        operations.old, operations.new = operations.new, article
+        operations.after = article["go_migrations"]
+        operations.running["article"] = False
+        operations.deploy({"id": "articles"})
+        self.assertEqual(operations.writes, 2)
+        self.assertEqual(operations.state["current"]["backend_commit"], "e" * 40)
+        operations.rollback()
+        self.assertEqual(operations.ledger, article["go_migrations"])
+        self.assertEqual(operations.state["current"]["backend_commit"], NEW_COMMIT)
+        operations.deploy({"id": "frontend-only", "frontend_only": True})
+        operations.deploy({"id": "articles-retry"})
+        self.assertEqual(operations.writes, 2)
+        self.assertFalse(Path(operations.config["gate"]).exists())
+
+    def test_article_commit_ack_failure_recovers_then_frontend_only_and_retry_succeed(self):
+        operations = self.operations
+        article = install_article_proof(operations)
+        operations.deploy({"id": "prices"})
+        operations.old, operations.new = operations.new, article
+        operations.after = article["go_migrations"]
+        operations.running["article"] = False
+        operations.lose_ack = True
+        with self.assertRaises(ConnectionError):
+            operations.deploy({"id": "articles"})
+        self.assertEqual(operations.ledger, article["go_migrations"])
+        self.assertEqual(operations.state["current"]["backend_commit"], NEW_COMMIT)
+        self.assertTrue(operations.running["new"])
+        self.assertFalse(Path(operations.config["gate"]).exists())
+        operations.deploy({"id": "frontend-only", "frontend_only": True})
+        operations.lose_ack = False
+        operations.deploy({"id": "articles-retry"})
+        self.assertEqual(operations.writes, 2)
+        self.assertEqual(operations.state["current"]["backend_commit"], "e" * 40)
 
     def test_commit_ack_failure_recovers_then_frontend_only_and_retry_succeed(self):
         operations = self.operations
