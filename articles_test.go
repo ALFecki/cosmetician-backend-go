@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -15,15 +17,29 @@ const testArticlesPath = "/api/articles"
 const testAdminArticlesPath = "/api/admin/articles"
 
 type articleResponseSummary struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Summary     string     `json:"summary"`
-	PublishedAt *time.Time `json:"publishedAt"`
+	ID               string            `json:"id"`
+	Title            string            `json:"title"`
+	Summary          string            `json:"summary"`
+	PublishedAt      *time.Time        `json:"publishedAt"`
+	CoverImage       *testArticleImage `json:"coverImage"`
+	FeaturedPosition *int              `json:"featuredPosition"`
 }
 
 type articleResponseDetail struct {
 	articleResponseSummary
-	Body string `json:"body"`
+	Body       string                 `json:"body"`
+	BodyImages []testArticleBodyImage `json:"bodyImages"`
+}
+
+type testArticleImage struct {
+	Image string `json:"image"`
+	Alt   string `json:"alt"`
+}
+
+type testArticleBodyImage struct {
+	testArticleImage
+	Caption        string `json:"caption"`
+	AfterParagraph int    `json:"afterParagraph"`
 }
 
 func TestArticlesRequireModeratorAndCSRF(t *testing.T) {
@@ -40,6 +56,7 @@ func TestArticlesRequireModeratorAndCSRF(t *testing.T) {
 		{http.MethodGet, testAdminArticlesPath},
 		{http.MethodGet, id},
 		{http.MethodPost, testAdminArticlesPath},
+		{http.MethodPut, testAdminArticlesPath + "/featured"},
 		{http.MethodPut, id},
 	} {
 		for _, identity := range []struct {
@@ -61,7 +78,7 @@ func TestArticlesRequireModeratorAndCSRF(t *testing.T) {
 }
 
 func TestArticlePublicationLifecycle(t *testing.T) {
-	pool := testCartDatabase(t, "migrations/0004_articles.sql")
+	pool := testCartDatabase(t, "migrations/0004_articles.sql", "migrations/0005_article_media.sql")
 	key := []byte("test-only")
 	handler := newHandler(pool, nil, &accountAuth{db: pool, fullDB: pool, key: key}, false)
 	public := newHandler(pool, nil, nil, false)
@@ -73,7 +90,8 @@ func TestArticlePublicationLifecycle(t *testing.T) {
 	draft := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodPost, testAdminArticlesPath,
 		`{"title":"Уход за кожей","summary":"","body":"","isPublished":false}`, moderator, "fixture-csrf"))
 	if _, err := uuid.Parse(draft.ID); err != nil || draft.Title != "Уход за кожей" ||
-		draft.Summary != "" || draft.Body != "" || draft.PublishedAt != nil {
+		draft.Summary != "" || draft.Body != "" || draft.PublishedAt != nil ||
+		draft.CoverImage != nil || draft.FeaturedPosition != nil || draft.BodyImages == nil || len(draft.BodyImages) != 0 {
 		t.Fatalf("unexpected draft: %+v", draft)
 	}
 	adminPath, publicPath := testAdminArticlesPath+"/"+draft.ID, testArticlesPath+"/"+draft.ID
@@ -81,7 +99,7 @@ func TestArticlePublicationLifecycle(t *testing.T) {
 	assertArticleList(t, public, testArticlesPath, nil)
 	assertPublicArticleMissing(t, public, publicPath)
 	got := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodGet, adminPath, "", moderator, "fixture-csrf"))
-	if got != draft {
+	if !reflect.DeepEqual(got, draft) {
 		t.Fatalf("draft detail = %+v, want %+v", got, draft)
 	}
 
@@ -134,7 +152,7 @@ func TestArticlePublicationLifecycle(t *testing.T) {
 }
 
 func TestArticleWriteValidatesTextAndJSON(t *testing.T) {
-	pool := testCartDatabase(t, "migrations/0004_articles.sql")
+	pool := testCartDatabase(t, "migrations/0004_articles.sql", "migrations/0005_article_media.sql")
 	key := []byte("test-only")
 	handler := newHandler(pool, nil, &accountAuth{db: pool, fullDB: pool, key: key}, false)
 	moderator := profileCookie(t, key, testModeratorID, false, true, false)
@@ -198,7 +216,7 @@ func assertPublicArticleMissing(t *testing.T, handler http.Handler, path string)
 	}
 }
 
-func assertArticleList(t *testing.T, handler http.Handler, path string, cookie *http.Cookie, ids ...string) {
+func assertArticleList(t *testing.T, handler http.Handler, path string, cookie *http.Cookie, ids ...string) []articleResponseSummary {
 	t.Helper()
 	var list struct {
 		Status string                   `json:"status"`
@@ -214,6 +232,7 @@ func assertArticleList(t *testing.T, handler http.Handler, path string, cookie *
 			t.Fatalf("article %d ID = %s, want %s", i, list.Data[i].ID, id)
 		}
 	}
+	return list.Data
 }
 
 func readArticleDetail(t *testing.T, response *httptest.ResponseRecorder) articleResponseDetail {
@@ -240,4 +259,163 @@ func readArticleResponse(t *testing.T, response *httptest.ResponseRecorder, targ
 	if err := decoder.Decode(target); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestArticleMediaRoundTrip(t *testing.T) {
+	pool := testCartDatabase(t, "migrations/0004_articles.sql", "migrations/0005_article_media.sql")
+	key := []byte("test-only")
+	handler := newHandler(pool, nil, &accountAuth{db: pool, fullDB: pool, key: key}, false)
+	moderator := profileCookie(t, key, testModeratorID, false, true, false)
+
+	first := testArticleImage{Image: "/images/00000000-0000-4000-8000-000000000001.jpg", Alt: "Обложка"}
+	second := testArticleImage{Image: "/images/00000000-0000-4000-8000-000000000002.webp", Alt: "До и после"}
+	images := []testArticleBodyImage{
+		{testArticleImage: second, AfterParagraph: 0},
+		{testArticleImage: first, Caption: "Подпись", AfterParagraph: 3},
+		{testArticleImage: second, AfterParagraph: 3},
+	}
+	payload := `{"title":"Статья с фотографиями","summary":"Кратко","body":"Первый\r\n   \rВторой\nТретий","isPublished":true,
+		"media":{"coverImage":{"image":"/images/00000000-0000-4000-8000-000000000001.jpg","alt":"Обложка"},"bodyImages":[
+			{"image":"/images/00000000-0000-4000-8000-000000000002.webp","alt":"До и после","afterParagraph":0},
+			{"image":"/images/00000000-0000-4000-8000-000000000001.jpg","alt":"Обложка","caption":"Подпись","afterParagraph":3},
+			{"image":"/images/00000000-0000-4000-8000-000000000002.webp","alt":"До и после","afterParagraph":3}]}}`
+	saved := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodPost, testAdminArticlesPath, payload, moderator, "fixture-csrf"))
+	if saved.CoverImage == nil || *saved.CoverImage != first || !slices.Equal(saved.BodyImages, images) {
+		t.Fatalf("media not returned in save response: %+v", saved)
+	}
+	publicPath := testArticlesPath + "/" + saved.ID
+	adminPath := testAdminArticlesPath + "/" + saved.ID
+	for _, read := range []struct {
+		listPath, detailPath string
+		cookie               *http.Cookie
+	}{
+		{testArticlesPath, publicPath, nil},
+		{testAdminArticlesPath, adminPath, moderator},
+	} {
+		list := assertArticleList(t, handler, read.listPath, read.cookie, saved.ID)
+		if list[0].CoverImage == nil || *list[0].CoverImage != first {
+			t.Fatalf("cover not returned in list: %+v", list[0])
+		}
+		detail := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodGet, read.detailPath, "", read.cookie, "fixture-csrf"))
+		if detail.CoverImage == nil || *detail.CoverImage != first || !slices.Equal(detail.BodyImages, images) {
+			t.Fatalf("media not returned in detail: %+v", detail)
+		}
+	}
+
+	oldClient := articlePayload(t, "Другой заголовок", "Кратко", "Один абзац", true)
+	edited := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodPut, adminPath, oldClient, moderator, "fixture-csrf"))
+	if edited.Body != "Один абзац" || edited.CoverImage == nil || *edited.CoverImage != first || !slices.Equal(edited.BodyImages, images) {
+		t.Fatalf("legacy update did not preserve media: %+v", edited)
+	}
+	cleared := readArticleDetail(t, bannerRawRequest(t, handler, http.MethodPut, adminPath,
+		strings.TrimSuffix(oldClient, "}")+`,"media":{"coverImage":null,"bodyImages":[]}}`, moderator, "fixture-csrf"))
+	if cleared.CoverImage != nil || cleared.BodyImages == nil || len(cleared.BodyImages) != 0 {
+		t.Fatalf("media not cleared: %+v", cleared)
+	}
+}
+
+func TestArticleWriteValidatesMedia(t *testing.T) {
+	pool := testCartDatabase(t, "migrations/0004_articles.sql", "migrations/0005_article_media.sql")
+	key := []byte("test-only")
+	handler := newHandler(pool, nil, &accountAuth{db: pool, fullDB: pool, key: key}, false)
+	moderator := profileCookie(t, key, testModeratorID, false, true, false)
+	basePayload := strings.TrimSuffix(articlePayload(t, "Заголовок", "", "Абзац", true), "}")
+	const validPath = "/images/00000000-0000-4000-8000-000000000001.png"
+	const validBodyImage = `{"image":"` + validPath + `","alt":"Фото","afterParagraph":1}`
+	for _, test := range []struct{ name, media string }{
+		{"null media", `null`},
+		{"omitted cover", `{"bodyImages":[]}`},
+		{"omitted illustrations", `{"coverImage":null}`},
+		{"null illustrations", `{"coverImage":null,"bodyImages":null}`},
+		{"remote image", `{"coverImage":{"image":"https://example.net` + validPath + `","alt":"Фото"},"bodyImages":[]}`},
+		{"non-upload path", `{"coverImage":{"image":"/images/file.png","alt":"Фото"},"bodyImages":[]}`},
+		{"SVG", `{"coverImage":{"image":"` + strings.Replace(validPath, ".png", ".svg", 1) + `","alt":"Фото"},"bodyImages":[]}`},
+		{"image URL query", `{"coverImage":{"image":"` + validPath + `?x","alt":"Фото"},"bodyImages":[]}`},
+		{"blank alt", `{"coverImage":{"image":"` + validPath + `","alt":" \t"},"bodyImages":[]}`},
+		{"oversize Unicode alt", `{"coverImage":{"image":"` + validPath + `","alt":"` + strings.Repeat("я", 201) + `"},"bodyImages":[]}`},
+		{"missing position", `{"coverImage":null,"bodyImages":[{"image":"` + validPath + `","alt":"Фото"}]}`},
+		{"fractional position", `{"coverImage":null,"bodyImages":[` + strings.Replace(validBodyImage, "1}", "0.5}", 1) + `]}`},
+		{"negative position", `{"coverImage":null,"bodyImages":[` + strings.Replace(validBodyImage, "1}", "-1}", 1) + `]}`},
+		{"position outside text", `{"coverImage":null,"bodyImages":[` + strings.Replace(validBodyImage, "1}", "2}", 1) + `]}`},
+		{"positions out of order", `{"coverImage":null,"bodyImages":[` + validBodyImage + "," + strings.Replace(validBodyImage, "1}", "0}", 1) + `]}`},
+		{"oversize caption", `{"coverImage":null,"bodyImages":[` + strings.TrimSuffix(validBodyImage, "}") + `,"caption":"` + strings.Repeat("я", 241) + `"}]}`},
+		{"too many illustrations", `{"coverImage":null,"bodyImages":[` + strings.Repeat(validBodyImage+",", 10) + validBodyImage + `]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			response := bannerRawRequest(t, handler, http.MethodPost, testAdminArticlesPath, basePayload+`,"media":`+test.media+"}", moderator, "fixture-csrf")
+			assertCartStatus(t, response, http.StatusBadRequest)
+		})
+	}
+	assertArticleList(t, handler, testAdminArticlesPath, moderator)
+}
+
+func TestFeaturedArticlesReplaceOnlyWithPublishedArticles(t *testing.T) {
+	pool := testCartDatabase(t, "migrations/0004_articles.sql", "migrations/0005_article_media.sql")
+	key := []byte("test-only")
+	handler := newHandler(pool, nil, &accountAuth{db: pool, fullDB: pool, key: key}, false)
+	moderator := profileCookie(t, key, testModeratorID, false, true, false)
+	save := func(path, method string, published bool) articleResponseDetail {
+		return readArticleDetail(t, bannerRawRequest(t, handler, method, path,
+			articlePayload(t, "Заголовок", "", "Текст", published), moderator, "fixture-csrf"))
+	}
+	first := save(testAdminArticlesPath, http.MethodPost, true).ID
+	second := save(testAdminArticlesPath, http.MethodPost, true).ID
+	third := save(testAdminArticlesPath, http.MethodPost, true).ID
+	draft := save(testAdminArticlesPath, http.MethodPost, false).ID
+	featuredPath := testAdminArticlesPath + "/featured"
+	update := func(ids ...string) {
+		t.Helper()
+		payload, err := json.Marshal(map[string][]string{"ids": ids})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var response struct {
+			Status string `json:"status"`
+			Data   struct {
+				IDs []string `json:"ids"`
+			} `json:"data"`
+		}
+		readArticleResponse(t, bannerRawRequest(t, handler, http.MethodPut, featuredPath, string(payload), moderator, "fixture-csrf"), &response)
+		if response.Status != "success" || response.Data.IDs == nil || !slices.Equal(response.Data.IDs, ids) {
+			t.Fatalf("unexpected featured response: %+v", response)
+		}
+	}
+	hasPositions := func(ids []string, positions ...int) {
+		t.Helper()
+		list := assertArticleList(t, handler, testArticlesPath, nil, ids...)
+		for index, position := range positions {
+			got := list[index].FeaturedPosition
+			if (position == 0 && got != nil) || (position != 0 && (got == nil || *got != position)) {
+				t.Fatalf("article %s featuredPosition = %v, want %d (0 means null)", list[index].ID, got, position)
+			}
+		}
+	}
+
+	update(first, third, second)
+	hasPositions([]string{third, second, first}, 2, 3, 1)
+	update(second, first)
+	hasPositions([]string{third, second, first}, 0, 1, 2)
+	for _, test := range []struct{ name, payload string }{
+		{"missing ids", `{}`},
+		{"null ids", `{"ids":null}`},
+		{"invalid id", `{"ids":["not-a-uuid"]}`},
+		{"duplicate ids", `{"ids":["` + third + `","` + strings.ToUpper(third) + `"]}`},
+		{"unknown id", `{"ids":["` + third + `","` + uuid.NewString() + `"]}`},
+		{"draft", `{"ids":["` + third + `","` + draft + `"]}`},
+		{"too many", `{"ids":["` + third + `","` + second + `","` + first + `","` + draft + `"]}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assertCartStatus(t, bannerRawRequest(t, handler, http.MethodPut, featuredPath, test.payload, moderator, "fixture-csrf"), http.StatusBadRequest)
+			hasPositions([]string{third, second, first}, 0, 1, 2)
+		})
+	}
+	if detail := save(testAdminArticlesPath+"/"+second, http.MethodPut, false); detail.FeaturedPosition != nil {
+		t.Fatal("unpublished article is still featured in the save response")
+	}
+	assertPublicArticleMissing(t, handler, testArticlesPath+"/"+second)
+	hasPositions([]string{third, first}, 0, 2)
+	save(testAdminArticlesPath+"/"+second, http.MethodPut, true)
+	hasPositions([]string{second, third, first}, 0, 0, 2)
+	update([]string{}...)
+	hasPositions([]string{second, third, first}, 0, 0, 0)
 }

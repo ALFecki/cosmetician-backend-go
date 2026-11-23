@@ -9,8 +9,13 @@ from pathlib import Path
 MIGRATION = "0003_catalog_price_cents.sql"
 PROOF = "catalog-price-migration.json"
 APPROVALS = {
-    MIGRATION: (PROOF, "catalog_price_operation", "SELECT, INSERT"),
-    "0004_articles.sql": ("articles-migration.json", "article", "SELECT, INSERT, UPDATE"),
+    MIGRATION: (PROOF, "catalog_price_operation", "SELECT, INSERT", "applying-catalog-price-migration"),
+    "0004_articles.sql": (
+        "articles-migration.json", "article", "SELECT, INSERT, UPDATE", "applying-articles-migration",
+    ),
+    "0005_article_media.sql": (
+        "article-media-migration.json", "article", "SELECT, INSERT, UPDATE", "applying-article-media-migration",
+    ),
 }
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
@@ -72,7 +77,7 @@ def trusted_proof(operations, migration=MIGRATION):
 def installed_proofs(operations):
     return [
         trusted_proof(operations, name)
-        for name, (filename, _, _) in APPROVALS.items()
+        for name, (filename, *_rest) in APPROVALS.items()
         if (operations.root / filename).exists() or (operations.root / filename).is_symlink()
     ]
 
@@ -193,11 +198,8 @@ def apply_migration(operations, old, candidate):
         "RAISE EXCEPTION 'Go migration start deadline passed'; "
         "END IF; END $catalog_price_deadline$;\n"
     )
-    _, table, permissions = APPROVALS[proof["migration"]]
-    operations.phase(
-        "applying-catalog-price-migration" if proof["migration"] == MIGRATION
-        else "applying-articles-migration"
-    )
+    _, table, permissions, phase = APPROVALS[proof["migration"]]
+    operations.phase(phase)
     operations.database(
         "BEGIN;\n"
         "SET LOCAL search_path = public;\n"
